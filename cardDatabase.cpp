@@ -88,8 +88,6 @@ vector<Card> getKarateCards(){
     karateCards.push_back(Card("Karate Guard", "Maintains a defensive stance to absorb incoming strikes.", CardType::BLOCK, FightingStyle::KARATE, 1, 0, 0, 1, 12));
     karateCards.push_back(Card("Counter Block", "Deflects an attack and prepares a quick counterstrike.", CardType::BLOCK, FightingStyle::KARATE, 2, 0, 0, 1, 12));
     return karateCards;
-<<<<<<< HEAD
-=======
 }
 
 StyleStats getStyleStats(FightingStyle style) {
