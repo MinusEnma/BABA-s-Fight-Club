@@ -2,7 +2,7 @@
 #include <vector>
 #include "card.h"
 using namespace std;
- 
+
 class StyleStats {
     private:
         int defense;
@@ -28,3 +28,4 @@ vector<Card> getMuayThaiCards();
 vector<Card> getTaekwondoCards();
 vector<Card> getBJJCards();
 vector<Card> getKarateCards();
+vector<Card> getStarterDeck(FightingStyle style);
