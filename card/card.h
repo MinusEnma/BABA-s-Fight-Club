@@ -1,6 +1,10 @@
 #pragma once
 #include <string>
+<<<<<<< HEAD:card/card.h
+#include "dice.h"
+=======
 #include <random>
+>>>>>>> origin/main:card.h
 using namespace std;
 
 enum class FightingStyle {

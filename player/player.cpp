@@ -1,14 +1,10 @@
 #include "player.h"
+#include "dice.h"
 #include <algorithm>
 #include <random>
 using namespace std;
- 
-static mt19937 rng(random_device{}());
- 
-static int randomBetween(int lo, int hi) {
-    uniform_int_distribution<int> dist(lo, hi);
-    return dist(rng);
-}
+
+static mt19937 rng(random_device{}()); // Only used for shuffling the deck
 
 Player::Player() {
     name = "Unknown";
@@ -119,8 +115,8 @@ void Player::discardHand() {
     hand.clear();
 }
 
-int Player::rollInitiative() const { // rolls a d12 and adds the player's speed stat
-    return randomBetween(1, 12) + speed;
+int Player::rollInitiative() const { // rolls the initiative die and adds the player's speed stat
+    return ::rollInitiative() + speed;
 }
  
 bool Player::queueCombo(int handIndex) { // puts cards in queue
@@ -146,10 +142,6 @@ void Player::clearQueue() { // Played cards go to the discard pile
     Combat stuff
 */
 
-int Player::rollDefense() {
-    return randomBetween(1, 6) + stats.getDefense() + stats.getDefenseRollBonus();
-}
- 
 void Player::takeDamage(int amount) {
     hp -= amount;
     if (hp < 0) hp = 0;
