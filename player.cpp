@@ -36,3 +36,33 @@ Player::Player(string name, FightingStyle style) {
     hasInitiative = false;
     stunned = false;
 }
+
+// getters
+
+string Player::getName() const {
+	return this->name;
+}
+
+FightingStyle Player::getStyle() const {
+	return this->style;
+}
+
+int Player::getHp() const {
+	return this->hp;
+}
+
+int Player::getStagger() const {
+	return this->staggerHealth;
+}
+
+int Player::getEnergy() const {
+	return this->energy;
+}
+
+const vector<Card>& Player::getHand() const {
+	return this->hand;
+}
+
+const vector<Card>& Player::getComboQueue() const {
+	return this->comboQueue;
+}
