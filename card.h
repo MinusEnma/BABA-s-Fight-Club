@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "dice.h"
 using namespace std;
 
 enum class FightingStyle {
