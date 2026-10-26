@@ -53,23 +53,6 @@ vector<Card> getTaekwondoCards(){
     return taekwondoCards;
 }
 
-vector<Card> getTaekwondoCards(){
-    vector<Card> taekwondoCards;
-    taekwondoCards.push_back(Card("Front Kick", "Strikes forward with a quick front kick.", CardType::ATTACK, FightingStyle::TAEKWONDO, 1, 12, 5, 1, 12));
-    taekwondoCards.push_back(Card("Side Kick", "Drives the heel forward with powerful force.", CardType::ATTACK, FightingStyle::TAEKWONDO, 2, 20, 5, 1, 12));
-    taekwondoCards.push_back(Card("Roundhouse Kick", "Swings the leg around to strike the opponent.", CardType::ATTACK, FightingStyle::TAEKWONDO, 2, 19, 5, 1, 12));
-    taekwondoCards.push_back(Card("Axe Kick", "Raises the leg and brings the heel downward.", CardType::ATTACK, FightingStyle::TAEKWONDO, 3, 27, 5, 1, 12));
-    taekwondoCards.push_back(Card("Back Kick", "Strikes backward with a powerful heel thrust.", CardType::ATTACK, FightingStyle::TAEKWONDO, 3, 25, 5, 1, 12));
-    taekwondoCards.push_back(Card("Spinning Hook Kick", "Spins and whips the heel toward the opponent.", CardType::ATTACK, FightingStyle::TAEKWONDO, 4, 32, 5, 1, 12));
-    taekwondoCards.push_back(Card("Jumping Front Kick", "Leaps forward and delivers a front kick.", CardType::ATTACK, FightingStyle::TAEKWONDO, 3, 23, 5, 1, 12));
-    taekwondoCards.push_back(Card("Double Roundhouse", "Delivers two consecutive roundhouse kicks.", CardType::ATTACK, FightingStyle::TAEKWONDO, 3, 30, 5, 1, 12));
-    taekwondoCards.push_back(Card("Tornado Kick", "Spins into a powerful jumping kick.", CardType::ATTACK, FightingStyle::TAEKWONDO, 5, 36, 5, 1, 12));
-    taekwondoCards.push_back(Card("Backstep Dodge", "Steps backward to evade an incoming kick.", CardType::EVADE, FightingStyle::TAEKWONDO, 1, 0, 0, 1, 12));
-    taekwondoCards.push_back(Card("High Guard", "Raises the arms to defend against high strikes.", CardType::BLOCK, FightingStyle::TAEKWONDO, 1, 0, 0, 1, 12));
-    taekwondoCards.push_back(Card("Side-Step Guard", "Steps sideways to evade a spinning or straight kick.", CardType::EVADE, FightingStyle::TAEKWONDO, 2, 0, 0, 1, 12));
-    return taekwondoCards;
-}
-
 vector<Card> getBJJCards(){
     vector<Card> bjjCards;
     bjjCards.push_back(Card("Single-Leg Takedown", "Grabs one leg to bring the opponent to the ground.", CardType::ATTACK, FightingStyle::BJJ, 2, 12, 5, 1, 12));
@@ -105,4 +88,81 @@ vector<Card> getKarateCards(){
     karateCards.push_back(Card("Karate Guard", "Maintains a defensive stance to absorb incoming strikes.", CardType::BLOCK, FightingStyle::KARATE, 1, 0, 0, 1, 12));
     karateCards.push_back(Card("Counter Block", "Deflects an attack and prepares a quick counterstrike.", CardType::BLOCK, FightingStyle::KARATE, 2, 0, 0, 1, 12));
     return karateCards;
+}
+
+StyleStats getStyleStats(FightingStyle style) {
+    switch (style) {
+        // (def spd defBonus evadeBonus)
+        case FightingStyle::BOXING:    return StyleStats(4, 7, 0, 1);
+        case FightingStyle::MUAY_THAI: return StyleStats(6, 5, 1, 0);
+        case FightingStyle::TAEKWONDO: return StyleStats(3, 8, 0, 2);
+        case FightingStyle::BJJ:       return StyleStats(7, 3, 2, 0);
+        case FightingStyle::KARATE:    return StyleStats(5, 6, 3, 1);
+    }
+    return StyleStats(5, 5, 0, 0);
+}
+
+static void addCopies(vector<Card>& deck, const vector<Card>& pool, const string& cardName, int copies) {
+    for (const Card& c : pool) {
+        if (c.getName() == cardName) {
+            for (int i = 0; i < copies; i++) {
+                deck.push_back(c);
+            }
+            return;
+        }
+    }
+}
+ 
+vector<Card> getStarterDeck(FightingStyle style) {
+    vector<Card> deck;
+    vector<Card> pool;
+    //(amount of copied in each character's starter deck)
+    switch (style) {
+        case FightingStyle::BOXING:
+            pool = getBoxingCards();
+            addCopies(deck, pool, "Jab", 4);
+            addCopies(deck, pool, "Boxing Guard", 4);
+            addCopies(deck, pool, "Cross", 1);
+            addCopies(deck, pool, "Body Shot", 1);
+            addCopies(deck, pool, "Slip Dodge", 1);
+            break;
+ 
+        case FightingStyle::MUAY_THAI:
+            pool = getMuayThaiCards();
+            addCopies(deck, pool, "Teep", 4);
+            addCopies(deck, pool, "Leg Check", 4);
+            addCopies(deck, pool, "Low Kick", 1);
+            addCopies(deck, pool, "Knee Strike", 1);
+            addCopies(deck, pool, "Sway Dodge", 1);
+            break;
+ 
+        case FightingStyle::TAEKWONDO:
+            pool = getTaekwondoCards();
+            addCopies(deck, pool, "Front Kick", 4);
+            addCopies(deck, pool, "High Guard", 4);
+            addCopies(deck, pool, "Side Kick", 1);
+            addCopies(deck, pool, "Roundhouse Kick", 1);
+            addCopies(deck, pool, "Backstep Dodge", 1);
+            break;
+ 
+        case FightingStyle::BJJ:
+            pool = getBJJCards();
+            addCopies(deck, pool, "Single-Leg Takedown", 4);   // BJJ has no 1-cost attack
+            addCopies(deck, pool, "Closed Guard Block", 4);
+            addCopies(deck, pool, "Guard Sweep", 1);
+            addCopies(deck, pool, "Kimura Lock", 1);
+            addCopies(deck, pool, "Guard Retention Dodge", 1);
+            break;
+ 
+        case FightingStyle::KARATE:
+            pool = getKarateCards();
+            addCopies(deck, pool, "Straight Punch", 4);
+            addCopies(deck, pool, "Karate Guard", 4);
+            addCopies(deck, pool, "Reverse Punch", 1);
+            addCopies(deck, pool, "Side Kick", 1);
+            addCopies(deck, pool, "Tai Sabaki Dodge", 1);
+            break;
+    }
+ 
+    return deck;
 }

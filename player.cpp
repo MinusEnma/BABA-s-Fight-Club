@@ -36,3 +36,31 @@ Player::Player(string name, FightingStyle style) {
     hasInitiative = false;
     stunned = false;
 }
+
+void Player::buildDeck() {
+    deck.clear();
+    hand.clear();
+    discardPile.clear();
+    comboQueue.clear();
+ 
+    vector<Card> pool;
+    switch (style) {
+        case FightingStyle::BOXING:    pool = getBoxingCards();    break;
+        case FightingStyle::MUAY_THAI: pool = getMuayThaiCards();  break;
+        case FightingStyle::TAEKWONDO: pool = getTaekwondoCards(); break;
+        case FightingStyle::BJJ:       pool = getBJJCards();       break;
+        case FightingStyle::KARATE:    pool = getKarateCards();    break;
+    }
+ 
+    for (const Card& c : pool) {
+        deck.push_back(c);
+    }
+ 
+    shuffleDeck();
+}
+
+void Player::shuffleDeck() {
+    shuffle(deck.begin(), deck.end(), rng);
+}
+
+

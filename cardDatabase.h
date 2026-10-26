@@ -28,3 +28,5 @@ vector<Card> getMuayThaiCards();
 vector<Card> getTaekwondoCards();
 vector<Card> getBJJCards();
 vector<Card> getKarateCards();
+vector<Card> getStarterDeck(FightingStyle style);
+ 
