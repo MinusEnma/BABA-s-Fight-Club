@@ -30,6 +30,7 @@ Player::Player(string name, FightingStyle style) {
     stats = getStyleStats(style);       
  
     hp = maxHp = 250;                   
+    staggerHealth = 125;
     energy = 0;
     defense = stats.getDefense();
     speed = stats.getSpeed();
@@ -113,6 +114,14 @@ void Player::clearQueue() { // Played cards go to the discard pile
     comboQueue.clear();
 }
 
+void Player::resetRound() {
+    clearQueue();
+    discardHand();
+    energy = 0;
+    stunned = false;
+    hasInitiative = false;
+}
+
 /* 
     Combat stuff
 */
@@ -150,4 +159,3 @@ int Player::getDiscardSize() const { return (int)discardPile.size(); }
 const vector<Card>& Player::getHand() const { return hand; }
 const vector<Card>& Player::getComboQueue() const { return comboQueue; }
  
-
