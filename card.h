@@ -10,7 +10,7 @@ enum class CardType {
     ATTACK, BLOCK, EVADE
 };
 
-class Card {
+class Card { // cards
     private:
         string name, description;
         CardType type;

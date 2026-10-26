@@ -147,7 +147,7 @@ vector<Card> getStarterDeck(FightingStyle style) {
  
         case FightingStyle::BJJ:
             pool = getBJJCards();
-            addCopies(deck, pool, "Single-Leg Takedown", 4);   // BJJ has no 1-cost attack
+            addCopies(deck, pool, "Single-Leg Takedown", 4);  
             addCopies(deck, pool, "Closed Guard Block", 4);
             addCopies(deck, pool, "Guard Sweep", 1);
             addCopies(deck, pool, "Kimura Lock", 1);

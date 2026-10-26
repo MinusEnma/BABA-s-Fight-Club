@@ -17,7 +17,7 @@ class Player {
         bool hasInitiative, stunned;
  
         vector<Card> hand;
-        vector<Card> deck;          // draw pile
+        vector<Card> deck;
         vector<Card> discardPile;
         vector<Card> comboQueue;
  

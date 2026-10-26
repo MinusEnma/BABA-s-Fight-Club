@@ -2,7 +2,7 @@
 #include <vector>
 #include "card.h"
 using namespace std;
- 
+// style stats for fighting styles
 class StyleStats {
     private:
         int defense;
