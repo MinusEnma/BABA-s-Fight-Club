@@ -36,7 +36,11 @@ class Player {
         bool drawCard();            // draw 1 card (reshuffles discard if deck is empty)
         void discardHand();         // move the whole hand to the discard pile
  
+<<<<<<< HEAD:player/player.h
         int rollAttack();
+=======
+        int rollDefense();
+>>>>>>> origin/main:player.h
         void takeDamage(int amount);
         void takeStaggerDamage(int amount);
         bool isStunned() const;
