@@ -1,24 +1,34 @@
 <<<<<<< Updated upstream
 #pragma once
 #include <string>
+<<<<<<< Updated upstream:card.h
+=======
+#include <random>
+#include "dice.h"
+>>>>>>> Stashed changes:card/card.h
 using namespace std;
-
+ 
 enum class FightingStyle {
     BOXING, MUAY_THAI, TAEKWONDO, BJJ, KARATE
 };
-
+ 
 enum class CardType {
     ATTACK, BLOCK, EVADE
 };
+<<<<<<< Updated upstream:card.h
 
 class Card { // cards
+=======
+ 
+class Card {
+>>>>>>> Stashed changes:card/card.h
     private:
         string name, description;
         CardType type;
         FightingStyle style;
-
+ 
         int energyCost, damage, staggerDamage, diceMin, diceMax, copies;
-
+ 
     public:
         Card();
         Card(string name, string description, CardType type, FightingStyle style, int energyCost, int damage, int staggerDamage, int diceMin, int diceMax);

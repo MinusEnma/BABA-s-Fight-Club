@@ -1,8 +1,8 @@
 #include "cardDatabase.h"
 using namespace std;
-
+ 
 // (energyCost, damage, staggerDamage, diceMin, diceMax)
-
+ 
 vector<Card> getBoxingCards(){
     vector<Card> boxingCards;
     boxingCards.push_back(Card("Jab", "A quick punch to the opponent", CardType::ATTACK, FightingStyle::BOXING, 1, 10, 5, 1, 12));
@@ -18,7 +18,7 @@ vector<Card> getBoxingCards(){
     boxingCards.push_back(Card("Parry", "Deflects an incoming punch with precise timing.", CardType::BLOCK, FightingStyle::BOXING, 2, 0, 0, 1, 12));
     return boxingCards;
 }
-
+ 
 vector<Card> getMuayThaiCards(){
     vector<Card> muayThaiCards;
     muayThaiCards.push_back(Card("Teep", "Pushes the opponent back with a straight front kick.", CardType::ATTACK, FightingStyle::MUAY_THAI, 1, 12, 5, 1, 12));
@@ -35,7 +35,7 @@ vector<Card> getMuayThaiCards(){
     muayThaiCards.push_back(Card("Leg Check", "Raises the leg to defend against an incoming kick.", CardType::BLOCK, FightingStyle::MUAY_THAI, 1, 0, 0, 1, 12));
     return muayThaiCards;
 }
-
+ 
 vector<Card> getTaekwondoCards(){
     vector<Card> taekwondoCards;
     taekwondoCards.push_back(Card("Front Kick", "Strikes forward with a quick front kick.", CardType::ATTACK, FightingStyle::TAEKWONDO, 1, 12, 5, 1, 12));
@@ -52,7 +52,7 @@ vector<Card> getTaekwondoCards(){
     taekwondoCards.push_back(Card("Side-Step Guard", "Steps sideways to evade a spinning or straight kick.", CardType::EVADE, FightingStyle::TAEKWONDO, 2, 0, 0, 1, 12));
     return taekwondoCards;
 }
-
+ 
 vector<Card> getBJJCards(){
     vector<Card> bjjCards;
     bjjCards.push_back(Card("Single-Leg Takedown", "Grabs one leg to bring the opponent to the ground.", CardType::ATTACK, FightingStyle::BJJ, 2, 12, 5, 1, 12));
@@ -89,7 +89,7 @@ vector<Card> getKarateCards(){
     karateCards.push_back(Card("Counter Block", "Deflects an attack and prepares a quick counterstrike.", CardType::BLOCK, FightingStyle::KARATE, 2, 0, 0, 1, 12));
     return karateCards;
 }
-
+ 
 StyleStats getStyleStats(FightingStyle style) {
     switch (style) {
         // (def spd defBonus evadeBonus)
@@ -101,7 +101,7 @@ StyleStats getStyleStats(FightingStyle style) {
     }
     return StyleStats(5, 5, 0, 0);
 }
-
+ 
 static void addCopies(vector<Card>& deck, const vector<Card>& pool, const string& cardName, int copies) {
     for (const Card& c : pool) {
         if (c.getName() == cardName) {

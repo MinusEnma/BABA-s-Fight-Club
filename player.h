@@ -21,6 +21,7 @@ class Player {
         vector<Card> discardPile;
         vector<Card> comboQueue;
  
+<<<<<<< Updated upstream:player.h
         bool drawCard();            // draw 1 card (reshuffles discard if deck is empty)
         void discardHand();         // move the whole hand to the discard pile
  
@@ -36,6 +37,24 @@ class Player {
         bool queueCombo(int handIndex);
         void clearQueue();
  
+=======
+    public:
+        Player();
+        Player(string name, FightingStyle style);
+ 
+        void buildDeck();
+        void drawhand();
+        void shuffleDeck();
+ 
+        int rollInitiative() const;
+        bool queueCombo(int handIndex);
+        void clearQueue();
+ 
+        bool drawCard();            // draw 1 card (reshuffles discard if deck is empty)
+        void discardHand();         // move the whole hand to the discard pile
+ 
+        int rollAttack();
+>>>>>>> Stashed changes:player/player.h
         int rollDefense();
         void takeDamage(int amount);
         void takeStaggerDamage(int amount);
