@@ -1,41 +1,41 @@
-#pragma once
-#include <string>
-<<<<<<< HEAD:card/card.h
-#include "dice.h"
-=======
-#include <random>
->>>>>>> origin/main:card.h
-using namespace std;
+#ifndef CARD_H
+#define CARD_H
 
-enum class FightingStyle {
-    BOXING, MUAY_THAI, TAEKWONDO, BJJ, KARATE
-};
+#include <stdint.h>
 
-enum class CardType {
-    ATTACK, BLOCK, EVADE
-};
+#define CARD_NAME_LEN 32
+#define CARD_DESC_LEN 96
 
-class Card {
-    private:
-        string name, description;
-        CardType type;
-        FightingStyle style;
+typedef enum {
+    STYLE_BOXING,
+    STYLE_MUAY_THAI,
+    STYLE_TAEKWONDO,
+    STYLE_BJJ,
+    STYLE_KARATE,
+    STYLE_COUNT
+} FightingStyle;
 
-        int energyCost, damage, staggerDamage, diceMin, diceMax, copies;
+typedef enum {
+    CARD_ATTACK,
+    CARD_BLOCK,
+    CARD_EVADE
+} CardType;
 
-    public:
-        Card();
-        Card(string name, string description, CardType type, FightingStyle style, int energyCost, int damage, int staggerDamage, int diceMin, int diceMax);
-        int rollDice() const;
-        int calculateDamage(int roll) const;
-        string getName() const;
-        string getDescription() const;
-        CardType getType() const;
-        FightingStyle getStyle() const;
-        int baseDamage() const;
-        int getEnergyCost() const;
-        int getStaggerDamage() const;
-        int getDiceMin() const;
-        int getDiceMax() const;
-        int getCopies() const;
-};
+// Fixed size: no pointers, no dynamic memory.
+// Enums are stored as uint8_t so the layout stays small and predictable.
+typedef struct {
+    char    name[CARD_NAME_LEN];
+    char    description[CARD_DESC_LEN];
+    uint8_t type;            // CardType
+    uint8_t style;           // FightingStyle
+    uint8_t energy_cost;
+    uint8_t damage;          // base damage, 0 for block/evade
+    uint8_t stagger_damage;
+    uint8_t dice_min;
+    uint8_t dice_max;
+} Card;
+
+int card_roll_dice(const Card *c);                    // roll between dice_min and dice_max
+int card_calculate_damage(const Card *c, int roll);   // base damage + roll
+
+#endif
