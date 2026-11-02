@@ -1,18 +1,13 @@
-#pragma once
-#include <random>
+#ifndef DICE_H
+#define DICE_H
 
-int roll(int sides) {
-    static std::random_device seedSource;   // Asks the computer for a random starting number
-    static std::mt19937 gen(seedSource());  // The dice machine, started with that number
+// Call once at program start (the server only, if the server does all the rolling)
+void dice_seed(void);
 
-    std::uniform_int_distribution<int> dist(1, sides); // Picks a fair number from 1 to sides
-    return dist(gen);                                  // Roll the dice and give back the result
-}
+int roll(int sides);                 // 1 .. sides
+int roll_range(int lo, int hi);      // lo .. hi (inclusive)
 
-int rollInitiative() {
-    return roll(20); // Roll a d20 for initiative
-}
+int roll_initiative(void);           // d20
+int roll_attack(void);               // d12
 
-int rollAttack() {
-    return roll(12); // Roll a d12 for attack
-}
+#endif
