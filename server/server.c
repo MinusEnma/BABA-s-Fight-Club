@@ -7,20 +7,20 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-// Display an error message and terminate the program.
+// Display error message and terminate program.
 void die_with_error(char *error_msg) {
     printf("%s\n", error_msg);
     exit(-1);
 }
 
-// Send a message to a client.
+// Send message to client.
 void send_message(int client_sock, const char *message) {
     if (send(client_sock, message, strlen(message), 0) < 0) {
         die_with_error("Error: send() Failed.");
     }
 }
 
-// Receive one line of text from a client.
+// Receive one line of text from client.
 int receive_line(int client_sock, char *buffer, int size) {
     int i = 0;
     char ch;
@@ -43,7 +43,7 @@ int receive_line(int client_sock, char *buffer, int size) {
     return i;
 }
 
-// Convert a selection number into a fighting style.
+// Convert selection number into fighting style.
 const char *get_style_name(int selection) {
     switch (selection) {
         case 1: return "Boxing";
@@ -71,39 +71,40 @@ int main(int argc, char *argv[]) {
 
     printf("Server starting ...\n");
 
-    // STEP 1: Create a TCP socket.
+    // Create TCP socket.
     server_sock = socket(AF_INET, SOCK_STREAM, 0);
 
     if (server_sock < 0)
         die_with_error("Error: socket() Failed.");
 
-    // Allow the server to reuse its port after restarting.
+    // Allow the server to reuse port after restarting.
     int reuse = 1;
-
+    
+    // Another function to help reuse port.
     setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR,
                &reuse, sizeof(reuse));
 
-    // STEP 2: Prepare the server's address information.
+    // Prepare server's address information.
     memset(&server_addr, 0, sizeof(server_addr));
 
-    port_no = atoi(argv[1]);
+    port_no = atoi(argv[1]); // Set port from input.
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(port_no);
 
-    // STEP 3: Bind the socket to the specified port.
+    // Bind socket to specified port.
     if (bind(server_sock, (struct sockaddr *) &server_addr,
              sizeof(server_addr)) < 0)
         die_with_error("Error: bind() Failed.");
 
-    // STEP 4: Make the socket listen for incoming connections.
+    // Make socket listen for incoming connections.
     if (listen(server_sock, 5) < 0)
         die_with_error("Error: listen() Failed.");
 
     printf("Server listening to port %d ...\n", port_no);
 
-    // STEP 5: Wait for Player 1 to connect.
+    // Wait for Player 1 to connect.
     printf("Waiting for Player 1 ...\n");
 
     client_size = sizeof(client_addr);
@@ -117,7 +118,7 @@ int main(int argc, char *argv[]) {
 
     printf("Player 1 successfully connected!\n");
 
-    // STEP 6: Wait for Player 2 to connect.
+    // Wait for Player 2 to connect.
     printf("Waiting for Player 2 ...\n");
 
     client_size = sizeof(client_addr);
@@ -131,14 +132,13 @@ int main(int argc, char *argv[]) {
 
     printf("Player 2 successfully connected!\n");
 
-    // STEP 7: Assign player numbers.
+    // Assign player numbers.
     send_message(client_sock1, "You are Player 1.\n");
     send_message(client_sock2, "You are Player 2.\n");
 
     printf("\nBoth players are connected!\n");
 
-    // STEP 8: Send the fighting style menu to both players.
-    // Notice that there is no leading newline.
+    // Send fighting style menu to both players.
     const char *style_menu =
         "===== SELECT YOUR FIGHTING STYLE =====\n"
         "1. Boxing\n"
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
     printf("Player 2 selected: %s\n",
            get_style_name(player2_choice));
 
-    // STEP 9: Notify both players that selections are complete.
+    // Notify both players that selections are complete.
     char result[256];
 
     snprintf(result, sizeof(result),
@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
 
 cleanup:
 
-    // STEP 10: Close both client connections.
+    // Close both client connections.
     close(client_sock1);
     close(client_sock2);
 

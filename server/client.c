@@ -8,13 +8,13 @@
 #include <netdb.h>
 #include <unistd.h>
 
-// Display an error message and terminate the program.
+// Display error message and terminate program.
 void die_with_error(char *error_msg) {
     printf("%s\n", error_msg);
     exit(-1);
 }
 
-// Receive one line of text from the server.
+// Receive one line of text from server.
 int receive_line(int client_sock, char *buffer, int size) {
     int i = 0;
     char ch;
@@ -45,7 +45,8 @@ int main(int argc, char *argv[]) {
     struct hostent *server;
 
     char buffer[256];
-
+    
+    // Checks if client provided hostname and port number.
     if (argc < 3) {
         printf("Usage: %s hostname port_no\n", argv[0]);
         exit(1);
@@ -53,13 +54,13 @@ int main(int argc, char *argv[]) {
 
     printf("Client starting ...\n");
 
-    // STEP 1: Create a TCP socket.
+    // Create a TCP socket.
     client_sock = socket(AF_INET, SOCK_STREAM, 0);
 
     if (client_sock < 0)
         die_with_error("Error: socket() Failed.");
 
-    // STEP 2: Look for the server using its hostname.
+    // Look for the server using its hostname.
     printf("Looking for host '%s'...\n", argv[1]);
 
     server = gethostbyname(argv[1]);
@@ -69,7 +70,7 @@ int main(int argc, char *argv[]) {
 
     printf("Host found!\n");
 
-    // STEP 3: Prepare the server's address information.
+    // Prepare the server's address information.
     port_no = atoi(argv[2]);
 
     memset(&server_addr, 0, sizeof(server_addr));
@@ -83,7 +84,7 @@ int main(int argc, char *argv[]) {
 
     server_addr.sin_port = htons(port_no);
 
-    // STEP 4: Connect to the server.
+    // Connect to the server.
     printf("Connecting to server at port %d...\n", port_no);
 
     if (connect(client_sock, (struct sockaddr *) &server_addr,
@@ -92,7 +93,7 @@ int main(int argc, char *argv[]) {
 
     printf("Connection successful!\n");
 
-    // STEP 5: Receive the player assignment.
+    // Receive the player assignment.
     memset(buffer, 0, sizeof(buffer));
 
     n = receive_line(client_sock, buffer, sizeof(buffer));
@@ -105,7 +106,7 @@ int main(int argc, char *argv[]) {
 
     printf("\n[server] > %s\n", buffer);
 
-    // STEP 6: Receive and display the fighting style menu.
+    // Receive and display the fighting style menu.
     while (1) {
         memset(buffer, 0, sizeof(buffer));
 
@@ -124,7 +125,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // STEP 7: Ask the player for a fighting style.
+    // Ask the player for a fighting style.
     char choice[32];
 
     printf("[you] > ");
@@ -143,7 +144,7 @@ int main(int argc, char *argv[]) {
 
     printf("\nWaiting for the other player to choose...\n");
 
-    // STEP 8: Receive the selection confirmation.
+    // Receive the selection confirmation.
     while (1) {
         memset(buffer, 0, sizeof(buffer));
 
@@ -165,7 +166,7 @@ int main(int argc, char *argv[]) {
 
 cleanup:
 
-    // STEP 9: Close the client socket.
+    // Close the client socket.
     close(client_sock);
 
     printf("\nConnection closed.\n");
