@@ -164,6 +164,27 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Receive and display the player's hand.
+    printf("\nReceiving your cards...\n");
+
+    while (1) {
+        memset(buffer, 0, sizeof(buffer));
+
+        n = receive_line(client_sock, buffer, sizeof(buffer));
+
+        if (n <= 0) {
+            printf("Server disconnected.\n");
+            break;
+        }
+
+        // Stop receiving when the server sends the ending marker.
+        if (strcmp(buffer, "END OF HAND") == 0) {
+            break;
+        }
+
+        printf("%s\n", buffer);
+    }
+
 cleanup:
 
     // Close the client socket.

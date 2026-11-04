@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include "../player/player.h"
+#include "../dice.h"
 
 // Display error message and terminate program.
 void die_with_error(char *error_msg) {
@@ -55,7 +57,41 @@ const char *get_style_name(int selection) {
     }
 }
 
+// Send a player's hand to their respective client.
+void send_player_hand(int client_sock, Player *player) {
+    char message[256];
+
+    send_message(client_sock, "===== YOUR HAND =====\n");
+
+    for (int i = 0; i < player->hand_count; i++) {
+
+        // Retrieve card information using its ID.
+        const Card *card = card_get(player->hand[i]);
+
+        printf("Hand index: %d | Card ID: %d | Card: %s\n",
+            i, player->hand[i],
+            card == NULL ? "NULL" : card->name);
+
+        if (card == NULL) {
+            continue;
+        }
+
+        snprintf(message, sizeof(message),
+                 "%d. %s | %s | Energy: %d\n",
+                 i + 1,
+                 card->name,
+                 card->description,
+                 card->energy_cost);
+
+        send_message(client_sock, message);
+    }
+
+    send_message(client_sock, "END OF HAND\n");
+}
+
 int main(int argc, char *argv[]) {
+
+    dice_seed(); // Initialize random number generator for deck shuffling
 
     int server_sock, client_sock1, client_sock2, port_no, n;
     socklen_t client_size;
@@ -206,6 +242,25 @@ int main(int argc, char *argv[]) {
     printf("Player 2 selected: %s\n",
            get_style_name(player2_choice));
 
+    // Convert player choices into FightingStyle enum values.
+    FightingStyle player1_style = (FightingStyle)(player1_choice - 1);
+    FightingStyle player2_style = (FightingStyle)(player2_choice - 1);
+
+    // Create both players using their selected fighting styles.
+    Player player1;
+    Player player2;
+
+    player_create(&player1, "Player 1", player1_style);
+    player_create(&player2, "Player 2", player2_style);
+
+    // Build and shuffle each player's starter deck.
+    player_build_deck(&player1);
+    player_build_deck(&player2);
+
+    // Draw the initial hand for both players.
+    player_draw_hand(&player1);
+    player_draw_hand(&player2);
+
     // Notify both players that selections are complete.
     char result[256];
 
@@ -220,7 +275,19 @@ int main(int argc, char *argv[]) {
     send_message(client_sock1, result);
     send_message(client_sock2, result);
 
+    // Send each player's hand to their respective client.
+    send_player_hand(client_sock1, &player1);
+    send_player_hand(client_sock2, &player2);
+
     printf("\nBoth players have selected their fighting styles!\n");
+
+    printf("\n===== PLAYER DECK INITIALIZATION =====\n");
+    printf("Player 1 deck size: %d\n", player1.deck_count);
+    printf("Player 2 deck size: %d\n", player2.deck_count);
+
+    printf("\n===== INITIAL HAND =====\n");
+    printf("Player 1 hand: %d cards\n", player1.hand_count);
+    printf("Player 2 hand: %d cards\n", player2.hand_count);
 
 cleanup:
 

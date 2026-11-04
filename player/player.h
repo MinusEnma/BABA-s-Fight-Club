@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "card.h"
-#include "cardDatabase.h"
+#include "../card/card.h"
+#include "../card/cardDatabase.h"
 
 #define PLAYER_NAME_LEN 32
 #define MAX_DECK   64      // max cards in the deck / draw pile / discard pile

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "player.h"
-#include "dice.h"
+#include "../dice.h"
 
 // ---------------------------------------------------------------
 // Setup
