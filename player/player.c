@@ -100,6 +100,11 @@ bool player_queue_combo(Player *p, int hand_index) {
     p->energy -= c->energy_cost;
     p->combo[p->combo_count++] = p->hand[hand_index];
 
+    // Defense cards take effect as soon as they are queued
+    if (c->type == CARD_BLOCK || c->type == CARD_EVADE) {
+        player_activate_defense(p, c);
+    }
+
     // remove the card from the hand (shift the rest down)
     for (int i = hand_index; i < p->hand_count - 1; i++) {
         p->hand[i] = p->hand[i + 1];
@@ -139,11 +144,71 @@ void player_take_stagger_damage(Player *p, int amount) {
         p->stagger = 0;
         p->stunned = 1;
         player_clear_queue(p);   // played cards are nullified and go to the discard pile
+        p->block = 0;            // their defensive cards are nullified too
+        p->evade = 0;
     }
 }
 
 bool player_is_stunned(const Player *p) {
     return p->stunned != 0;
+}
+
+// ---------------------------------------------------------------
+// Defense (block / evade)
+// ---------------------------------------------------------------
+// Called when a BLOCK or EVADE card is played.
+void player_activate_defense(Player *p, const Card *c) {
+    int value = card_roll_dice(c);
+
+    if (c->type == CARD_BLOCK) {
+        p->block += value + p->stats.defense_roll_bonus;
+    } else if (c->type == CARD_EVADE) {
+        value += p->stats.evade_bonus;
+        if (value > p->evade) p->evade = (int16_t)value;   // keep the stronger evade
+    }
+}
+
+// Resolves one attack against this player.
+// attack_roll is the raw dice roll, which is what gets tested against evade.
+HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
+    HitResult r = {0};
+    int dmg = card_calculate_damage(atk, attack_roll);
+
+    // 1) Block soaks first (like Slay the Spire). Evade is not touched by absorbed hits.
+    if (p->block > 0) {
+        int absorbed = (dmg < p->block) ? dmg : p->block;
+        p->block -= (int16_t)absorbed;
+        dmg -= absorbed;
+        r.blocked = absorbed;
+    }
+    if (dmg <= 0) return r;
+
+    // 2) Damage that got past block faces the evade.
+    if (p->evade > 0) {
+        bool beaten = EVADE_TIES_HOLD ? (attack_roll > p->evade)
+                                      : (attack_roll >= p->evade);
+        if (beaten) {
+            p->evade = 0;              // beaten: evade is gone and the hit lands
+            r.evade_broken = true;
+        } else {
+            // Evade holds, but gets weaker: failure becomes more likely next time
+            p->evade -= EVADE_DECAY;
+            if (p->evade < 0) p->evade = 0;
+            r.evaded = true;
+            return r;
+        }
+    }
+
+    // 3) Damage reaches HP
+    player_take_damage(p, dmg);
+    player_take_stagger_damage(p, atk->stagger_damage);
+    r.hp_lost = dmg;
+    return r;
+}
+
+// Call when a player's turn ends: block expires, evade is retained.
+void player_end_turn(Player *p) {
+    p->block = 0;
 }
 
 // ---------------------------------------------------------------
@@ -156,6 +221,8 @@ void player_reset_round(Player *p) {
 
     p->stagger = START_STAGGER;
     p->stunned = 0;
+    p->block = 0;               // the clash is over, so both defenses end
+    p->evade = 0;
     p->energy = ROUND_ENERGY;
     p->has_initiative = 0;
 }

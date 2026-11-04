@@ -1,5 +1,6 @@
 #include <string.h>
 #include "cardDatabase.h"
+#include "../dice.h"
 
 // name, description, type, style, energy_cost, damage, stagger_damage, dice_min, dice_max
 #define CARD_ROW(n, d, t, s, cost, dmg, stg, dmin, dmax) \
@@ -160,4 +161,16 @@ int get_starter_deck(FightingStyle style, uint8_t *out, int max) {
             break;
     }
     return count;
+}
+
+int card_roll_dice(const Card *c) {
+    if (c == NULL) return 0;
+
+    return roll_range(c->dice_min, c->dice_max);
+}
+
+int card_calculate_damage(const Card *c, int roll) {
+    if (c == NULL) return 0;
+
+    return c->damage + roll;
 }
