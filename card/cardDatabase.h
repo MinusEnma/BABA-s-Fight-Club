@@ -1,4 +1,3 @@
-
 #ifndef CARDDATABASE_H
 #define CARDDATABASE_H
 
