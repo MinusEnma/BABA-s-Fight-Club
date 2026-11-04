@@ -1,8 +1,10 @@
-#include <string.h>
+
+#include <stddef.h>
 #include "cardDatabase.h"
 #include "../dice.h"
 
-// name, description, type, style, energy_cost, damage, stagger_damage, dice_min, dice_max
+// name, description, type, style, energy_cost, damage,
+// stagger_damage, dice_min, dice_max
 #define CARD_ROW(n, d, t, s, cost, dmg, stg, dmin, dmax) \
     { n, d, (uint8_t)(t), (uint8_t)(s), cost, dmg, stg, dmin, dmax }
 
@@ -21,7 +23,7 @@ static const Card CARD_TABLE[CARD_COUNT] = {
     [CARD_BOX_BOXING_GUARD] = CARD_ROW("Boxing Guard", "Raises the arms to absorb incoming damage.", CARD_BLOCK, STYLE_BOXING, 1, 0, 0, 1, 12),
     [CARD_BOX_PARRY] = CARD_ROW("Parry", "Deflects an incoming punch with precise timing.", CARD_BLOCK, STYLE_BOXING, 2, 0, 0, 1, 12),
 
-    // ---------- MUAY_THAI ----------
+    // ---------- MUAY THAI ----------
     [CARD_MT_TEEP] = CARD_ROW("Teep", "Pushes the opponent back with a straight front kick.", CARD_ATTACK, STYLE_MUAY_THAI, 1, 12, 5, 1, 12),
     [CARD_MT_ROUNDHOUSE_KICK] = CARD_ROW("Roundhouse Kick", "Swings the leg in a powerful circular kick.", CARD_ATTACK, STYLE_MUAY_THAI, 3, 24, 5, 1, 12),
     [CARD_MT_LOW_KICK] = CARD_ROW("Low Kick", "Targets the opponent's thigh with a low kick.", CARD_ATTACK, STYLE_MUAY_THAI, 2, 16, 5, 1, 12),
@@ -49,7 +51,7 @@ static const Card CARD_TABLE[CARD_COUNT] = {
     [CARD_TKD_HIGH_GUARD] = CARD_ROW("High Guard", "Raises the arms to defend against high strikes.", CARD_BLOCK, STYLE_TAEKWONDO, 1, 0, 0, 1, 12),
     [CARD_TKD_SIDE_STEP_GUARD] = CARD_ROW("Side-Step Guard", "Steps sideways to evade a spinning or straight kick.", CARD_EVADE, STYLE_TAEKWONDO, 2, 0, 0, 1, 12),
 
-    // ---------- BJJ ----------
+    // ---------- BRAZILIAN JIU-JITSU ----------
     [CARD_BJJ_SINGLE_LEG_TAKEDOWN] = CARD_ROW("Single-Leg Takedown", "Grabs one leg to bring the opponent to the ground.", CARD_ATTACK, STYLE_BJJ, 2, 12, 5, 1, 12),
     [CARD_BJJ_DOUBLE_LEG_TAKEDOWN] = CARD_ROW("Double-Leg Takedown", "Drives forward and takes the opponent down using both legs.", CARD_ATTACK, STYLE_BJJ, 3, 18, 5, 1, 12),
     [CARD_BJJ_GUARD_SWEEP] = CARD_ROW("Guard Sweep", "Reverses position to place the opponent underneath.", CARD_ATTACK, STYLE_BJJ, 2, 14, 5, 1, 12),
@@ -78,49 +80,69 @@ static const Card CARD_TABLE[CARD_COUNT] = {
     [CARD_KAR_COUNTER_STRIKE] = CARD_ROW("Counter Strike", "Punishes the opponent immediately after a missed attack.", CARD_ATTACK, STYLE_KARATE, 2, 24, 5, 1, 12),
     [CARD_KAR_TAI_SABAKI_DODGE] = CARD_ROW("Tai Sabaki Dodge", "Shifts the body off-line to evade an incoming strike.", CARD_EVADE, STYLE_KARATE, 1, 0, 0, 1, 12),
     [CARD_KAR_KARATE_GUARD] = CARD_ROW("Karate Guard", "Maintains a defensive stance to absorb incoming strikes.", CARD_BLOCK, STYLE_KARATE, 1, 0, 0, 1, 12),
-    [CARD_KAR_COUNTER_BLOCK] = CARD_ROW("Counter Block", "Deflects an attack and prepares a quick counterstrike.", CARD_BLOCK, STYLE_KARATE, 2, 0, 0, 1, 12),
+    [CARD_KAR_COUNTER_BLOCK] = CARD_ROW("Counter Block", "Deflects an attack and prepares a quick counterstrike.", CARD_BLOCK, STYLE_KARATE, 2, 0, 0, 1, 12)
 };
 
-const Card *card_get(uint8_t id) {
-    if (id >= CARD_COUNT) return NULL;
+const Card *card_get(uint8_t id)
+{
+    if (id >= CARD_COUNT) {
+        return NULL;
+    }
+
     return &CARD_TABLE[id];
 }
 
-int card_pool_for_style(FightingStyle style, uint8_t *out, int max) {
+int card_pool_for_style(FightingStyle style, uint8_t *out, int max)
+{
+    if (out == NULL || max <= 0) {
+        return 0;
+    }
+
+    if (style < STYLE_BOXING || style >= STYLE_COUNT) {
+        return 0;
+    }
+
     int count = 0;
+
     for (int i = 0; i < CARD_COUNT && count < max; i++) {
         if (CARD_TABLE[i].style == (uint8_t)style) {
             out[count++] = (uint8_t)i;
         }
     }
+
     return count;
 }
 
-StyleStats get_style_stats(FightingStyle style) {
-    StyleStats s = {5, 5, 0, 0};   // default
-    switch (style) {
-        // def spd defBonus evadeBonus
-        case STYLE_BOXING:    s = (StyleStats){4, 7, 0, 1}; break;
-        case STYLE_MUAY_THAI: s = (StyleStats){6, 5, 1, 0}; break;
-        case STYLE_TAEKWONDO: s = (StyleStats){3, 8, 0, 2}; break;
-        case STYLE_BJJ:       s = (StyleStats){7, 3, 2, 0}; break;
-        case STYLE_KARATE:    s = (StyleStats){5, 6, 3, 1}; break;
-        default: break;
-    }
-    return s;
-}
-
-// Adds "copies" copies of a card ID to out[]. Returns the new count.
-static int add_copies(uint8_t *out, int count, int max, uint8_t id, int copies) {
+// Adds copies of a card ID to the output deck.
+static int add_copies(
+    uint8_t *out,
+    int count,
+    int max,
+    uint8_t id,
+    int copies
+)
+{
     for (int i = 0; i < copies && count < max; i++) {
         out[count++] = id;
     }
+
     return count;
 }
 
-// Starter decks: 4 basic attacks, 4 blocks, 2 other attacks, 1 dodge (11 cards)
-int get_starter_deck(FightingStyle style, uint8_t *out, int max) {
+// Starter decks contain 11 cards:
+// 4 basic attacks, 4 defensive cards, 2 additional attacks, 1 evade.
+int get_starter_deck(FightingStyle style, uint8_t *out, int max)
+{
+    if (out == NULL || max <= 0) {
+        return 0;
+    }
+
+    if (style < STYLE_BOXING || style >= STYLE_COUNT) {
+        return 0;
+    }
+
     int count = 0;
+
     switch (style) {
         case STYLE_BOXING:
             count = add_copies(out, count, max, CARD_BOX_JAB, 4);
@@ -129,6 +151,7 @@ int get_starter_deck(FightingStyle style, uint8_t *out, int max) {
             count = add_copies(out, count, max, CARD_BOX_BODY_SHOT, 1);
             count = add_copies(out, count, max, CARD_BOX_SLIP_DODGE, 1);
             break;
+
         case STYLE_MUAY_THAI:
             count = add_copies(out, count, max, CARD_MT_TEEP, 4);
             count = add_copies(out, count, max, CARD_MT_LEG_CHECK, 4);
@@ -136,6 +159,7 @@ int get_starter_deck(FightingStyle style, uint8_t *out, int max) {
             count = add_copies(out, count, max, CARD_MT_KNEE_STRIKE, 1);
             count = add_copies(out, count, max, CARD_MT_SWAY_DODGE, 1);
             break;
+
         case STYLE_TAEKWONDO:
             count = add_copies(out, count, max, CARD_TKD_FRONT_KICK, 4);
             count = add_copies(out, count, max, CARD_TKD_HIGH_GUARD, 4);
@@ -143,6 +167,7 @@ int get_starter_deck(FightingStyle style, uint8_t *out, int max) {
             count = add_copies(out, count, max, CARD_TKD_ROUNDHOUSE_KICK, 1);
             count = add_copies(out, count, max, CARD_TKD_BACKSTEP_DODGE, 1);
             break;
+
         case STYLE_BJJ:
             count = add_copies(out, count, max, CARD_BJJ_SINGLE_LEG_TAKEDOWN, 4);
             count = add_copies(out, count, max, CARD_BJJ_CLOSED_GUARD_BLOCK, 4);
@@ -150,6 +175,7 @@ int get_starter_deck(FightingStyle style, uint8_t *out, int max) {
             count = add_copies(out, count, max, CARD_BJJ_KIMURA_LOCK, 1);
             count = add_copies(out, count, max, CARD_BJJ_GUARD_RETENTION_DODGE, 1);
             break;
+
         case STYLE_KARATE:
             count = add_copies(out, count, max, CARD_KAR_STRAIGHT_PUNCH, 4);
             count = add_copies(out, count, max, CARD_KAR_KARATE_GUARD, 4);
@@ -157,20 +183,36 @@ int get_starter_deck(FightingStyle style, uint8_t *out, int max) {
             count = add_copies(out, count, max, CARD_KAR_SIDE_KICK, 1);
             count = add_copies(out, count, max, CARD_KAR_TAI_SABAKI_DODGE, 1);
             break;
+
         default:
-            break;
+            return 0;
     }
+
     return count;
 }
 
-int card_roll_dice(const Card *c) {
-    if (c == NULL) return 0;
+int card_roll_dice(const Card *c)
+{
+    if (c == NULL || c->dice_min > c->dice_max) {
+        return 0;
+    }
 
     return roll_range(c->dice_min, c->dice_max);
 }
 
-int card_calculate_damage(const Card *c, int roll) {
-    if (c == NULL) return 0;
+int card_calculate_damage(const Card *c, int roll)
+{
+    if (c == NULL) {
+        return 0;
+    }
 
-    return c->damage + roll;
+    if (c->type != CARD_ATTACK) {
+        return 0;
+    }
+
+    if (roll < c->dice_min || roll > c->dice_max) {
+        return 0;
+    }
+
+    return (int)c->damage + roll;
 }

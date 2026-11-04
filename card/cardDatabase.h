@@ -1,12 +1,12 @@
+
 #ifndef CARDDATABASE_H
 #define CARDDATABASE_H
 
 #include <stdint.h>
 #include "card.h"
+#include "fightingStyle.h"
 
-// Every card has a fixed ID (its index in the card table).
-// Players store these small IDs in their piles, so only IDs
-// need to travel over the socket, never names or descriptions.
+// Every card has a fixed ID matching its index in CARD_TABLE.
 typedef enum {
     CARD_BOX_JAB,
     CARD_BOX_CROSS,
@@ -19,6 +19,7 @@ typedef enum {
     CARD_BOX_SLIP_DODGE,
     CARD_BOX_BOXING_GUARD,
     CARD_BOX_PARRY,
+
     CARD_MT_TEEP,
     CARD_MT_ROUNDHOUSE_KICK,
     CARD_MT_LOW_KICK,
@@ -31,6 +32,7 @@ typedef enum {
     CARD_MT_SWAY_DODGE,
     CARD_MT_THAI_GUARD,
     CARD_MT_LEG_CHECK,
+
     CARD_TKD_FRONT_KICK,
     CARD_TKD_SIDE_KICK,
     CARD_TKD_ROUNDHOUSE_KICK,
@@ -43,6 +45,7 @@ typedef enum {
     CARD_TKD_BACKSTEP_DODGE,
     CARD_TKD_HIGH_GUARD,
     CARD_TKD_SIDE_STEP_GUARD,
+
     CARD_BJJ_SINGLE_LEG_TAKEDOWN,
     CARD_BJJ_DOUBLE_LEG_TAKEDOWN,
     CARD_BJJ_GUARD_SWEEP,
@@ -57,6 +60,7 @@ typedef enum {
     CARD_BJJ_CLOSED_GUARD_BLOCK,
     CARD_BJJ_SUBMISSION_ESCAPE,
     CARD_BJJ_SPRAWL,
+
     CARD_KAR_STRAIGHT_PUNCH,
     CARD_KAR_REVERSE_PUNCH,
     CARD_KAR_KNIFE_HAND_STRIKE,
@@ -70,28 +74,19 @@ typedef enum {
     CARD_KAR_TAI_SABAKI_DODGE,
     CARD_KAR_KARATE_GUARD,
     CARD_KAR_COUNTER_BLOCK,
+
     CARD_COUNT
 } CardId;
 
-// Stats that differ per fighting style (HP and stagger are the same for all)
-typedef struct {
-    uint8_t defense;
-    uint8_t speed;
-    uint8_t defense_roll_bonus;   // added to defense rolls
-    uint8_t evade_bonus;          // added to evade rolls
-} StyleStats;
-
-StyleStats get_style_stats(FightingStyle style);
-
-// Returns the card with this ID, or NULL if the ID is invalid
+// Returns the card for an ID, or NULL if invalid.
 const Card *card_get(uint8_t id);
 
-// Fills out[] with the IDs of every card belonging to a style.
-// Returns how many were written (at most max).
+// Gets all card IDs belonging to a fighting style.
+// Returns the number of IDs written, up to max.
 int card_pool_for_style(FightingStyle style, uint8_t *out, int max);
 
-// Fills out[] with the predetermined starter deck IDs for a style.
-// Returns how many were written (at most max).
+// Gets the predetermined starter deck for a fighting style.
+// Returns the number of IDs written, up to max.
 int get_starter_deck(FightingStyle style, uint8_t *out, int max);
 
 #endif
