@@ -2,7 +2,7 @@
 #define CARD_H
 
 #include <stdint.h>
-#include "fightingStyle.h"
+#include "../fightingStyle/fightingStyle.h"
 
 #define CARD_NAME_LEN 32
 #define CARD_DESC_LEN 96

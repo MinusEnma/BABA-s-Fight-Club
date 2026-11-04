@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include "player.h"
+#include "player/player.h"
+#include "dice/dice.h"
+#include "card/cardDatabase.h"
 
 int main(void) {
-	Player player;
-	player.clearQueue();
+    return 0;
 }

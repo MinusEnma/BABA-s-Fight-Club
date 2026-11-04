@@ -22,7 +22,7 @@ int roll_range(int lo, int hi) {
     long long range = (long long)hi - lo + 1;
 
     // Prevent invalid or excessively large ranges.
-    if (range > (long long)RAND_MAX + 1) {
+    if (range > (long long)RAND_MAX) {
         return 0;
     }
 

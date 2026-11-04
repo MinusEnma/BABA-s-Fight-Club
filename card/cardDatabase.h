@@ -2,8 +2,9 @@
 #define CARDDATABASE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "card.h"
-#include "fightingStyle.h"
+#include "../fightingStyle/fightingStyle.h"
 
 // Every card has a fixed ID matching its index in CARD_TABLE.
 typedef enum {
@@ -88,4 +89,5 @@ int card_pool_for_style(FightingStyle style, uint8_t *out, int max);
 // Returns the number of IDs written, up to max.
 int get_starter_deck(FightingStyle style, uint8_t *out, int max);
 
+bool card_table_valid(void);
 #endif

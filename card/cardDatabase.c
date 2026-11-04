@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include "cardDatabase.h"
-#include "../dice.h"
+#include "../dice/dice.h"
 
 // name, description, type, style, energy_cost, damage,
 // stagger_damage, dice_min, dice_max
@@ -89,6 +89,15 @@ const Card *card_get(uint8_t id)
     }
 
     return &CARD_TABLE[id];
+}
+
+bool card_table_valid(void)
+{
+    for (int i = 0; i < CARD_COUNT; i++) {
+        if (CARD_TABLE[i].name[0] == '\0') return false;   // forgotten entry
+        if (CARD_TABLE[i].dice_min > CARD_TABLE[i].dice_max) return false;
+    }
+    return true;
 }
 
 int card_pool_for_style(FightingStyle style, uint8_t *out, int max)

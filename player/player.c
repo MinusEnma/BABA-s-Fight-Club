@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "player.h"
-#include "../dice.h"
+#include "../dice/dice.h"
 
 // ---------------------------------------------------------------
 // Setup
@@ -124,13 +124,13 @@ void player_clear_queue(Player *p) {
 // ---------------------------------------------------------------
 // Combat
 // ---------------------------------------------------------------
-int player_roll_attack(const Player *p) {
+int player_roll_attack(const Player *p, const Card *c) {
     (void)p;
-    return roll_attack();
+    return card_roll_dice(c);      // uses the card's dice_min..dice_max
 }
 
 int player_roll_defense(const Player *p) {
-    return roll(6) + p->stats.defense + p->stats.defense_roll_bonus;
+    return roll(6) + p->defense + p->stats.defense_roll_bonus;
 }
 
 void player_take_damage(Player *p, int amount) {
@@ -139,12 +139,13 @@ void player_take_damage(Player *p, int amount) {
 }
 
 void player_take_stagger_damage(Player *p, int amount) {
+    if (p->stunned) return;          // already stunned: don't re-trigger
     p->stagger -= amount;
     if (p->stagger <= 0) {
         p->stagger = 0;
         p->stunned = 1;
-        player_clear_queue(p);   // played cards are nullified and go to the discard pile
-        p->block = 0;            // their defensive cards are nullified too
+        player_clear_queue(p);
+        p->block = 0;
         p->evade = 0;
     }
 }
@@ -158,12 +159,16 @@ bool player_is_stunned(const Player *p) {
 // ---------------------------------------------------------------
 // Called when a BLOCK or EVADE card is played.
 void player_activate_defense(Player *p, const Card *c) {
+    if (p == NULL || c == NULL) return;
+
     int value = card_roll_dice(c);
 
     if (c->type == CARD_BLOCK) {
-        p->block += value + p->stats.defense_roll_bonus;
+        // defense stat now actually matters
+        p->block += value + p->defense + p->stats.defense_roll_bonus;
     } else if (c->type == CARD_EVADE) {
         value += p->stats.evade_bonus;
+        if (value > EVADE_MAX) value = EVADE_MAX;          // keep evade beatable
         if (value > p->evade) p->evade = (int16_t)value;   // keep the stronger evade
     }
 }
@@ -172,6 +177,7 @@ void player_activate_defense(Player *p, const Card *c) {
 // attack_roll is the raw dice roll, which is what gets tested against evade.
 HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
     HitResult r = {0};
+    if (p == NULL || atk == NULL) return r;
     int dmg = card_calculate_damage(atk, attack_roll);
 
     // 1) Block soaks first (like Slay the Spire). Evade is not touched by absorbed hits.

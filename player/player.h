@@ -20,6 +20,7 @@
 #define EVADE_DECAY      2     // evade value lost after each successful evade (makes failure more likely)
 #define EVADE_TIES_HOLD  1     // 1: attack roll == evade still evades (attack must be HIGHER to beat it)
                                // 0: attack must be strictly LOWER to be evaded
+#define EVADE_MAX  11    // an attack d12 can roll 12, so evade 12+ would be unbeatable
 
 // Piles store card IDs (see CardId in cardDatabase.h), not whole cards.
 typedef struct {
@@ -66,7 +67,7 @@ bool player_queue_combo(Player *p, int hand_index);
 void player_clear_queue(Player *p);
 
 // Combat
-int  player_roll_attack(const Player *p);       // d12
+int  player_roll_attack(const Player *p, const Card *c);   // rolls the card's own dice
 int  player_roll_defense(const Player *p);      // d6 + defense + defense roll bonus
 void player_take_damage(Player *p, int amount);
 void player_take_stagger_damage(Player *p, int amount);
