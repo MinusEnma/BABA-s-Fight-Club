@@ -1,4 +1,3 @@
-
 #include <stddef.h>
 #include "cardDatabase.h"
 #include "../dice.h"
