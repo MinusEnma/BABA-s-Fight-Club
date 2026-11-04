@@ -1,161 +1,82 @@
-#include <stdio.h>
-#include <string.h>
-#include "player.h"
-#include "dice.h"
-
-// ---------------------------------------------------------------
+#ifndef PLAYER_H
+#define PLAYER_H
+ 
+#include <stdint.h>
+#include <stdbool.h>
+#include "card.h"
+#include "cardDatabase.h"
+ 
+#define PLAYER_NAME_LEN 32
+#define MAX_DECK   64      // max cards in the deck / draw pile / discard pile
+#define MAX_HAND   10
+#define MAX_COMBO  10
+#define HAND_SIZE  6       // cards drawn per round
+ 
+#define START_HP       250
+#define START_STAGGER  125
+#define ROUND_ENERGY   6   // placeholder: energy per round
+ 
+// Evade tuning (placeholders)
+#define EVADE_DECAY      2     // evade value lost after each successful evade (makes failure more likely)
+#define EVADE_TIES_HOLD  1     // 1: attack roll == evade still evades (attack must be HIGHER to beat it)
+                               // 0: attack must be strictly LOWER to be evaded
+ 
+// Piles store card IDs (see CardId in cardDatabase.h), not whole cards.
+typedef struct {
+    char       name[PLAYER_NAME_LEN];
+    uint8_t    style;             // FightingStyle
+    StyleStats stats;
+ 
+    int16_t hp, max_hp, stagger, energy, defense, speed;
+    int16_t block;                // Slay-the-Spire style pool: absorbs damage before HP, expires after the turn
+    int16_t evade;                // 0 = none active, else the threshold an attack roll is compared to; lasts for the clash
+    uint8_t has_initiative, stunned;
+ 
+    uint8_t deck[MAX_DECK];       uint8_t deck_count;      // draw pile
+    uint8_t hand[MAX_HAND];       uint8_t hand_count;
+    uint8_t discard[MAX_DECK];    uint8_t discard_count;
+    uint8_t combo[MAX_COMBO];     uint8_t combo_count;     // queued moves
+} Player;
+ 
+// Result of one attack landing on a player (handy for terminal output)
+typedef struct {
+    int  blocked;         // damage absorbed by block
+    int  hp_lost;         // damage that reached HP
+    bool evaded;          // attack was dodged (evade holds)
+    bool evade_broken;    // evade was beaten by this attack
+} HitResult;
+ 
 // Setup
-// ---------------------------------------------------------------
-void player_init(Player *p) {
-    memset(p, 0, sizeof(*p));
-    snprintf(p->name, PLAYER_NAME_LEN, "%s", "Unknown");
-    p->style = STYLE_BOXING;                 // placeholder default
-    p->stats = (StyleStats){5, 5, 0, 0};
-
-    p->hp = p->max_hp = START_HP;
-    p->stagger = START_STAGGER;
-    p->energy = 0;
-    p->defense = p->stats.defense;
-    p->speed = p->stats.speed;
-}
-
-void player_create(Player *p, const char *name, FightingStyle style) {
-    memset(p, 0, sizeof(*p));
-    snprintf(p->name, PLAYER_NAME_LEN, "%s", name);
-    p->style = (uint8_t)style;
-    p->stats = get_style_stats(style);
-
-    p->hp = p->max_hp = START_HP;            // same for every style
-    p->stagger = START_STAGGER;              // same for every style
-    p->energy = 0;
-    p->defense = p->stats.defense;
-    p->speed = p->stats.speed;
-}
-
-void player_build_deck(Player *p) {
-    p->hand_count = 0;
-    p->discard_count = 0;
-    p->combo_count = 0;
-
-    p->deck_count = (uint8_t)get_starter_deck((FightingStyle)p->style, p->deck, MAX_DECK);
-    player_shuffle_deck(p);
-}
-
-void player_shuffle_deck(Player *p) {
-    // Fisher-Yates shuffle
-    for (int i = p->deck_count - 1; i > 0; i--) {
-        int j = roll_range(0, i);
-        uint8_t tmp = p->deck[i];
-        p->deck[i] = p->deck[j];
-        p->deck[j] = tmp;
-    }
-}
-
-
+void player_init(Player *p);                                            // default player
+void player_create(Player *p, const char *name, FightingStyle style);   // named player with style stats
+void player_build_deck(Player *p);                                      // loads the starter deck
+void player_shuffle_deck(Player *p);
+ 
 // Deck handling
-bool player_draw_card(Player *p) {
-    if (p->hand_count >= MAX_HAND) return false;
-
-    // Draw pile empty? Shuffle the discard pile back into it
-    if (p->deck_count == 0) {
-        if (p->discard_count == 0) return false;   // nothing left anywhere
-        memcpy(p->deck, p->discard, p->discard_count);
-        p->deck_count = p->discard_count;
-        p->discard_count = 0;
-        player_shuffle_deck(p);
-    }
-
-    p->deck_count--;
-    p->hand[p->hand_count++] = p->deck[p->deck_count];
-    return true;
-}
-
-void player_draw_hand(Player *p) {
-    while (p->hand_count < HAND_SIZE) {
-        if (!player_draw_card(p)) break;
-    }
-}
-
-void player_discard_hand(Player *p) {
-    for (int i = 0; i < p->hand_count && p->discard_count < MAX_DECK; i++) {
-        p->discard[p->discard_count++] = p->hand[i];
-    }
-    p->hand_count = 0;
-}
-
-// Turn / combos
-
-int player_roll_initiative(const Player *p) {
-    return roll_initiative() + p->speed;
-}
-
-bool player_queue_combo(Player *p, int hand_index) {
-    if (hand_index < 0 || hand_index >= p->hand_count) return false;
-    if (p->combo_count >= MAX_COMBO) return false;
-
-    const Card *c = card_get(p->hand[hand_index]);
-    if (c == NULL) return false;
-    if (c->energy_cost > p->energy) return false;      // not enough energy
-
-    p->energy -= c->energy_cost;
-    p->combo[p->combo_count++] = p->hand[hand_index];
-
-    // remove the card from the hand (shift the rest down)
-    for (int i = hand_index; i < p->hand_count - 1; i++) {
-        p->hand[i] = p->hand[i + 1];
-    }
-    p->hand_count--;
-    return true;
-}
-
-void player_clear_queue(Player *p) {
-    // Played cards go to the discard pile
-    for (int i = 0; i < p->combo_count && p->discard_count < MAX_DECK; i++) {
-        p->discard[p->discard_count++] = p->combo[i];
-    }
-    p->combo_count = 0;
-}
-
-// ---------------------------------------------------------------
+bool player_draw_card(Player *p);       // draws 1 (reshuffles discard if deck is empty)
+void player_draw_hand(Player *p);       // draws until the hand has HAND_SIZE cards
+void player_discard_hand(Player *p);
+ 
+// Turn / combo
+int  player_roll_initiative(const Player *p);   // d20 + speed
+bool player_queue_combo(Player *p, int hand_index);
+void player_clear_queue(Player *p);
+ 
 // Combat
-// ---------------------------------------------------------------
-int player_roll_attack(const Player *p) {
-    (void)p;
-    return roll_attack();
-}
-
-int player_roll_defense(const Player *p) {
-    return roll(6) + p->stats.defense + p->stats.defense_roll_bonus;
-}
-
-void player_take_damage(Player *p, int amount) {
-    p->hp -= amount;
-    if (p->hp < 0) p->hp = 0;
-}
-
-void player_take_stagger_damage(Player *p, int amount) {
-    p->stagger -= amount;
-    if (p->stagger <= 0) {
-        p->stagger = 0;
-        p->stunned = 1;
-        player_clear_queue(p);   // played cards are nullified and go to the discard pile
-    }
-}
-
-bool player_is_stunned(const Player *p) {
-    return p->stunned != 0;
-}
-
-// ---------------------------------------------------------------
-// Round handling
-// ---------------------------------------------------------------
-void player_reset_round(Player *p) {
-    player_clear_queue(p);      // played cards -> discard
-    player_discard_hand(p);     // unplayed cards -> discard
-    player_draw_hand(p);        // draw a fresh hand
-
-    p->stagger = START_STAGGER;
-    p->stunned = 0;
-    p->energy = ROUND_ENERGY;
-    p->has_initiative = 0;
-}
+int  player_roll_attack(const Player *p);       // d12
+int  player_roll_defense(const Player *p);      // d6 + defense + defense roll bonus
+void player_take_damage(Player *p, int amount);
+void player_take_stagger_damage(Player *p, int amount);
+bool player_is_stunned(const Player *p);
+ 
+// Defense
+void      player_activate_defense(Player *p, const Card *c);                  // roll a BLOCK/EVADE card into block/evade
+HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll); // block -> evade -> HP
+void      player_end_turn(Player *p);                                         // block expires (evade stays until round end)
+ 
+// Round handling.
+// Start of game:  player_build_deck();  player_reset_round();
+// After a clash:  player_reset_round();
+void player_reset_round(Player *p);
+ 
+#endif
