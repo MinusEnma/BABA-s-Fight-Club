@@ -113,17 +113,16 @@ int main(int argc, char *argv[]) {
     if (server_sock < 0)
         die_with_error("Error: socket() Failed.");
 
-    // Allow the server to reuse port after restarting.
+    // Allow the server to reuse its port after restarting.
     int reuse = 1;
-    
-    // Another function to help reuse port.
+
     setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR,
                &reuse, sizeof(reuse));
 
-    // Prepare server's address information.
+    // Prepare the server's address information.
     memset(&server_addr, 0, sizeof(server_addr));
 
-    port_no = atoi(argv[1]); // Set port from input.
+    port_no = atoi(argv[1]);
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -292,6 +291,8 @@ int main(int argc, char *argv[]) {
 cleanup:
 
     // Close both client connections.
+    printf("\nBoth players have selected their fighting styles!\n");
+
     close(client_sock1);
     close(client_sock2);
 
