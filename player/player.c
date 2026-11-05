@@ -2,6 +2,7 @@
 #include <string.h>
 #include "player.h"
 #include "../dice/dice.h"
+#include "../fightingStyle/fightingStyle.h"
 
 // ---------------------------------------------------------------
 // Setup
