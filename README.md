@@ -45,3 +45,6 @@ BABA-s-Fight-Club/
 ├── compiler.sh\
 ├── main.c\
 └── README.md
+
+## How to compile
+run compiler.sh
