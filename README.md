@@ -1,5 +1,10 @@
 # BABA-s-Fight-Club
 Terminal Based Game
+### card
+### dice
+### fightingStyle
+### player
+### server
 
 ## card
 -card.h
