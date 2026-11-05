@@ -27,8 +27,8 @@ Terminal Based Game
 -server.h
 -server.c
 
-BABA-s-Fight-Club/\
-├── card/\
+BABA-s-Fight-Club/  
+├── card/  
 │   ├── card.h\
 │   ├── cardDatabase.c\
 │   └── cardDatabase.h\
