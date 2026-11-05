@@ -29,19 +29,19 @@ Terminal Based Game
 
 BABA-s-Fight-Club/
 ├── card/
-│   ├── card.h
-│   ├── cardDatabase.c
-│   └── cardDatabase.h
-├── dice/
-│   ├── dice.c
-│   └── dice.h
+│   ├── card.h/
+│   ├── cardDatabase.c/
+│   └── cardDatabase.h/
+├── dice//
+│   ├── dice.c/
+│   └── dice.h/
 ├── fightingStyle/
-│   ├── dice.c
-│   └── dice.h
+│   ├── dice.c/
+│   └── dice.h/
 ├── player/
-│   ├── player.c
-│   └── player.h
-├── .gitignore
-├── compiler.sh
-├── main.c
-└── README.md
+│   ├── player.c/
+│   └── player.h/
+├── .gitignore/
+├── compiler.sh/
+├── main.c/
+└── README.md/
