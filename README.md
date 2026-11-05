@@ -1,23 +1,23 @@
 # BABA-s-Fight-Club
 Terminal Based Game
 
-===CARD===
+## card
 -card.h
 -cardDatabase.c
 -cardDatabase.h
 
-===DICE===
+## dice
 -dice.h
 -dice.c
 
-===FIGHTINGSTYLE===
+## fightingStyle
 -fightingStyle.h
 -fightingStyle.c
 
-===PLAYER===
+## player
 -player.h
 -player.c
 
-===SERVER===
+## server
 -server.h
 -server.c
