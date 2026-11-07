@@ -14,7 +14,7 @@
  
 #define START_HP       250
 #define START_STAGGER  125
-#define ROUND_ENERGY   6   // placeholder: energy per round
+#define ROUND_ENERGY   5   // placeholder: energy per round
  
 // Evade tuning (placeholders)
 #define EVADE_DECAY      2     // evade value lost after each successful evade (makes failure more likely)

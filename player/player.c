@@ -28,7 +28,7 @@ void player_create(Player *p, const char *name, FightingStyle style) {
 
     p->hp = p->max_hp = START_HP;            // same for every style
     p->stagger = START_STAGGER;              // same for every style
-    p->energy = 0;
+    p->energy = ROUND_ENERGY;
     p->defense = p->stats.defense;
     p->speed = p->stats.speed;
 }
@@ -100,11 +100,6 @@ bool player_queue_combo(Player *p, int hand_index) {
 
     p->energy -= c->energy_cost;
     p->combo[p->combo_count++] = p->hand[hand_index];
-
-    // Defense cards take effect as soon as they are queued
-    if (c->type == CARD_BLOCK || c->type == CARD_EVADE) {
-        player_activate_defense(p, c);
-    }
 
     // remove the card from the hand (shift the rest down)
     for (int i = hand_index; i < p->hand_count - 1; i++) {
