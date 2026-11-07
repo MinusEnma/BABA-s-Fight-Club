@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include "../player/player.h"
-#include "../dice.h"
+#include "../dice/dice.h"
 
 // Display error message and terminate program.
 void die_with_error(char *error_msg) {
