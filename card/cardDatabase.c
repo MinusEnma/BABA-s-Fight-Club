@@ -199,7 +199,7 @@ int get_starter_deck(FightingStyle style, uint8_t *out, int max)
     return count;
 }
 
-int card_roll_dice(const Card *c)
+int card_roll_dice(const Card *c) // Card Dice roll D12
 {
     if (c == NULL || c->dice_min > c->dice_max) {
         return 0;

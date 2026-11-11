@@ -67,7 +67,7 @@ bool player_queue_combo(Player *p, int hand_index);
 void player_clear_queue(Player *p);
 
 // Combat
-int  player_roll_attack(const Player *p, const Card *c);   // rolls the card's own dice
+int  player_roll_card(const Player *p, const Card *c);   // rolls the card's own dice
 int  player_roll_defense(const Player *p);      // d6 + defense + defense roll bonus
 void player_take_damage(Player *p, int amount);
 void player_take_stagger_damage(Player *p, int amount);

@@ -308,7 +308,45 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            break;
+            // Wait for the next round or encounter result.
+            while (1) {
+                memset(buffer, 0, sizeof(buffer));
+
+                n = receive_line(client_sock, buffer, sizeof(buffer));
+
+                if (n < 0) {
+                    printf("Server disconnected.\n");
+                    goto cleanup;
+                }
+
+                if (strcmp(buffer, "NEXT_ROUND") == 0) {
+                    break;
+                }
+
+                printf("[server] > %s\n", buffer);
+            }
+
+            // Receive the new hand.
+            printf("\n===== NEXT ROUND =====\n");
+
+            while (1) {
+                memset(buffer, 0, sizeof(buffer));
+
+                n = receive_line(client_sock, buffer, sizeof(buffer));
+
+                if (n < 0) {
+                    printf("Server disconnected.\n");
+                    goto cleanup;
+                }
+
+                if (strcmp(buffer, "END OF HAND") == 0) {
+                    break;
+                }
+
+                printf("%s\n", buffer);
+            }
+
+            printf("\n===== CARD SELECTION =====\n");
         }
     }
 

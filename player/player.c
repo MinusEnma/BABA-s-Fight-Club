@@ -120,7 +120,7 @@ void player_clear_queue(Player *p) {
 // ---------------------------------------------------------------
 // Combat
 // ---------------------------------------------------------------
-int player_roll_attack(const Player *p, const Card *c) {
+int player_roll_card(const Player *p, const Card *c) {
     (void)p;
     return card_roll_dice(c);      // uses the card's dice_min..dice_max
 }

@@ -117,12 +117,13 @@ void send_player_hand(int client_sock, Player *player) {
 
 // Execute one selected action.
 void execute_action(
-    Player *player,
+    Player *attacker,
+    Player *defender,
     int action_number,
     int client_sock1,
     int client_sock2
 ) {
-    uint8_t card_id = player->combo[action_number];
+    uint8_t card_id = attacker->combo[action_number];
     const Card *card = card_get(card_id);
 
     char message[256];
@@ -130,7 +131,7 @@ void execute_action(
     if (card == NULL) {
         snprintf(message, sizeof(message),
                  "%s has an invalid card in their action queue.\n",
-                 player->name);
+                 attacker->name);
 
         broadcast_message(client_sock1, client_sock2, message);
         return;
@@ -138,13 +139,37 @@ void execute_action(
 
     snprintf(message, sizeof(message),
              "%s executes: %s\n",
-             player->name, card->name);
+             attacker->name, card->name);
 
     broadcast_message(client_sock1, client_sock2, message);
 
-    // Activate defensive cards when they are executed.
+    // Activate defensive cards.
     if (card->type == CARD_BLOCK || card->type == CARD_EVADE) {
-        player_activate_defense(player, card);
+        player_activate_defense(attacker, card);
+    }
+
+    // Process attack cards.
+    else if (card->type == CARD_ATTACK) {
+
+        int attack_roll = player_roll_card(attacker, card);
+
+        HitResult result = player_receive_attack(
+            defender, card, attack_roll
+        );
+
+        snprintf(message, sizeof(message),
+                 "Attack roll: %d\n"
+                 "Damage blocked: %d\n"
+                 "Damage dealt: %d\n"
+                 "%s HP remaining: %d\n",
+                 attack_roll,
+                 result.blocked,
+                 result.hp_lost,
+                 defender->name,
+                 defender->hp
+        );
+
+        broadcast_message(client_sock1, client_sock2, message);
     }
 }
 
@@ -175,16 +200,18 @@ void resolve_combat(
 
         // If only Player 1 has an action remaining.
         if (p1_has_action && !p2_has_action) {
-            execute_action(player1, p1_index,
-                           client_sock1, client_sock2);
+            execute_action(
+                player1, player2, p1_index,
+                client_sock1, client_sock2);
             p1_index++;
             continue;
         }
 
         // If only Player 2 has an action remaining.
         if (!p1_has_action && p2_has_action) {
-            execute_action(player2, p2_index,
-                           client_sock1, client_sock2);
+            execute_action(
+                player2, player1, p2_index,
+                client_sock1, client_sock2);
             p2_index++;
             continue;
         }
@@ -224,8 +251,9 @@ void resolve_combat(
 
             broadcast_message(client_sock1, client_sock2, message);
 
-            execute_action(player1, p1_index,
-                           client_sock1, client_sock2);
+            execute_action(
+                player1, player2, p1_index,
+                client_sock1, client_sock2);
 
         } else {
 
@@ -237,8 +265,9 @@ void resolve_combat(
 
             broadcast_message(client_sock1, client_sock2, message);
 
-            execute_action(player2, p2_index,
-                           client_sock1, client_sock2);
+            execute_action(
+                player2, player1, p2_index,
+                client_sock1, client_sock2);
         }
 
         // Both players' paired actions are consumed.
@@ -328,6 +357,62 @@ void handle_selection_command(
 
     // Send the updated hand after removing the selected card.
     send_player_hand(client_sock, player);
+}
+
+// Handle the card-selection phase for both players.
+int selection_phase(
+    int client_sock1,
+    int client_sock2,
+    Player *player1,
+    Player *player2
+) {
+    int player1_ready = 0;
+    int player2_ready = 0;
+    int n;
+
+    char command[256];
+
+    printf("\n===== CARD SELECTION PHASE =====\n");
+
+    while (!player1_ready || !player2_ready) {
+
+        // Receive Player 1's command if they are not READY.
+        if (!player1_ready) {
+
+            n = receive_line(client_sock1, command, sizeof(command));
+
+            if (n < 0) {
+                printf("Player 1 disconnected.\n");
+                return 0;
+            }
+
+            handle_selection_command(
+                client_sock1, player1, command, &player1_ready
+            );
+        }
+
+        // Receive Player 2's command if they are not READY.
+        if (!player2_ready) {
+
+            n = receive_line(client_sock2, command, sizeof(command));
+
+            if (n < 0) {
+                printf("Player 2 disconnected.\n");
+                return 0;
+            }
+
+            handle_selection_command(
+                client_sock2, player2, command, &player2_ready
+            );
+        }
+    }
+
+    printf("\nBoth players are READY!\n");
+
+    send_message(client_sock1, "BOTH_READY\n");
+    send_message(client_sock2, "BOTH_READY\n");
+
+    return 1;
 }
 
 int main(int argc, char *argv[]) {
@@ -529,59 +614,50 @@ int main(int argc, char *argv[]) {
     printf("Player 1 hand: %d cards\n", player1.hand_count);
     printf("Player 2 hand: %d cards\n", player2.hand_count);
 
-    // Begin the card-selection phase.
-    printf("\n===== CARD SELECTION PHASE =====\n");
+    // Begin the encounter's round system.
+    int round_number = 1;
+    int encounter_finished = 0;
 
-    int player1_ready = 0;
-    int player2_ready = 0;
+    while (!encounter_finished) {
 
-    char command[256];
+        printf("\n====================================\n");
+        printf("             ROUND %d\n", round_number);
+        printf("====================================\n");
 
-    while (!player1_ready || !player2_ready) {
-
-        // Receive Player 1's command if they are not READY.
-        if (!player1_ready) {
-
-            n = receive_line(client_sock1, command, sizeof(command));
-
-            if (n < 0) {
-                printf("Player 1 disconnected.\n");
-                goto cleanup;
-            }
-
-            handle_selection_command(
-                client_sock1, &player1, command, &player1_ready
-            );
+        // Both players select their cards.
+        if (!selection_phase(
+                client_sock1, client_sock2,
+                &player1, &player2)) {
+            goto cleanup;
         }
 
-        // Receive Player 2's command if they are not READY.
-        if (!player2_ready) {
+        // Resolve the selected actions.
+        resolve_combat(
+            &player1,
+            &player2,
+            client_sock1,
+            client_sock2
+        );
 
-            n = receive_line(client_sock2, command, sizeof(command));
-
-            if (n < 0) {
-                printf("Player 2 disconnected.\n");
-                goto cleanup;
-            }
-
-            handle_selection_command(
-                client_sock2, &player2, command, &player2_ready
-            );
+        // Check whether a player has been defeated.
+        if (player1.hp <= 0 || player2.hp <= 0) {
+            encounter_finished = 1;
+            break;
         }
+
+        // Prepare both players for the next round.
+        player_reset_round(&player1);
+        player_reset_round(&player2);
+
+        // Send the new hands to their respective clients.
+        send_message(client_sock1, "NEXT_ROUND\n");
+        send_message(client_sock2, "NEXT_ROUND\n");
+
+        send_player_hand(client_sock1, &player1);
+        send_player_hand(client_sock2, &player2);
+
+        round_number++;
     }
-
-    printf("\nBoth players are READY!\n");
-
-    send_message(client_sock1, "BOTH_READY\n");
-    send_message(client_sock2, "BOTH_READY\n");
-
-    // Begin combat after both players confirm.
-    resolve_combat(
-    &player1,
-    &player2,
-    client_sock1,
-    client_sock2
-);
 
 cleanup:
 

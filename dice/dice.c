@@ -21,7 +21,6 @@ int roll_range(int lo, int hi) {
 
     long long range = (long long)hi - lo + 1;
 
-    // Prevent invalid or excessively large ranges.
     if (range > (long long)RAND_MAX) {
         return 0;
     }
@@ -31,8 +30,4 @@ int roll_range(int lo, int hi) {
 
 int roll_initiative(void) {
     return roll(20);
-}
-
-int roll_attack(void) {
-    return roll(12);
 }
