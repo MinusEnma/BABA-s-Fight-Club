@@ -156,11 +156,10 @@ bool player_is_stunned(const Player *p) {
 // Called when a BLOCK or EVADE card is played.
 void player_activate_defense(Player *p, const Card *c) {
     if (p == NULL || c == NULL) return;
-
-    int value = card_roll_dice(c);
-
+ 
+    int value = card_calculate_defense(c, card_roll_dice(c));
+ 
     if (c->type == CARD_BLOCK) {
-        // defense stat now actually matters
         p->block += value + p->defense + p->stats.defense_roll_bonus;
     } else if (c->type == CARD_EVADE) {
         value += p->stats.evade_bonus;
@@ -168,14 +167,14 @@ void player_activate_defense(Player *p, const Card *c) {
         if (value > p->evade) p->evade = (int16_t)value;   // keep the stronger evade
     }
 }
-
+ 
 // Resolves one attack against this player.
 // attack_roll is the raw dice roll, which is what gets tested against evade.
 HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
     HitResult r = {0};
     if (p == NULL || atk == NULL) return r;
     int dmg = card_calculate_damage(atk, attack_roll);
-
+ 
     // 1) Block soaks first (like Slay the Spire). Evade is not touched by absorbed hits.
     if (p->block > 0) {
         int absorbed = (dmg < p->block) ? dmg : p->block;
@@ -184,7 +183,7 @@ HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
         r.blocked = absorbed;
     }
     if (dmg <= 0) return r;
-
+ 
     // 2) Damage that got past block faces the evade.
     if (p->evade > 0) {
         bool beaten = EVADE_TIES_HOLD ? (attack_roll > p->evade)
@@ -200,19 +199,19 @@ HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
             return r;
         }
     }
-
+ 
     // 3) Damage reaches HP
     player_take_damage(p, dmg);
     player_take_stagger_damage(p, atk->stagger_damage);
     r.hp_lost = dmg;
     return r;
 }
-
+ 
 // Call when a player's turn ends: block expires, evade is retained.
 void player_end_turn(Player *p) {
     p->block = 0;
 }
-
+ 
 // ---------------------------------------------------------------
 // Round handling
 // ---------------------------------------------------------------
@@ -220,7 +219,7 @@ void player_reset_round(Player *p) {
     player_clear_queue(p);      // played cards -> discard
     player_discard_hand(p);     // unplayed cards -> discard
     player_draw_hand(p);        // draw a fresh hand
-
+ 
     p->stagger = START_STAGGER;
     p->stunned = 0;
     p->block = 0;               // the clash is over, so both defenses end
@@ -228,3 +227,4 @@ void player_reset_round(Player *p) {
     p->energy = ROUND_ENERGY;
     p->has_initiative = 0;
 }
+ 
