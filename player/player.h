@@ -48,6 +48,9 @@ typedef struct {
     int  hp_lost;         // damage that reached HP
     bool evaded;          // attack was dodged (evade holds)
     bool evade_broken;    // evade was beaten by this attack
+    int attack_base;      // base attack damage
+    int attack_roll;      // roll of the attack
+    int attack_total;     // attack total damage
 } HitResult;
 
 // Setup

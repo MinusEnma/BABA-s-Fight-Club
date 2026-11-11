@@ -156,54 +156,94 @@ bool player_is_stunned(const Player *p) {
 // Called when a BLOCK or EVADE card is played.
 void player_activate_defense(Player *p, const Card *c) {
     if (p == NULL || c == NULL) return;
- 
-    int value = card_calculate_defense(c, card_roll_dice(c));
- 
+
+    int roll = card_roll_dice(c);
+    int value = card_calculate_defense(c, roll);
+
     if (c->type == CARD_BLOCK) {
-        p->block += value + p->defense + p->stats.defense_roll_bonus;
-    } else if (c->type == CARD_EVADE) {
-        value += p->stats.evade_bonus;
-        if (value > EVADE_MAX) value = EVADE_MAX;          // keep evade beatable
-        if (value > p->evade) p->evade = (int16_t)value;   // keep the stronger evade
+        p->block = value;
     }
+    else if (c->type == CARD_EVADE) {
+        p->evade = value;
+    }
+}
+
+int card_calculate_defense(const Card *c, int roll)
+{
+    if (c == NULL) {
+        return 0;
+    }
+
+    if (c->type != CARD_BLOCK && c->type != CARD_EVADE) {
+        return 0;
+    }
+
+    if (roll < c->dice_min || roll > c->dice_max) {
+        return 0;
+    }
+
+    return (int)c->defense_value + roll;
 }
  
 // Resolves one attack against this player.
 // attack_roll is the raw dice roll, which is what gets tested against evade.
 HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
     HitResult r = {0};
-    if (p == NULL || atk == NULL) return r;
-    int dmg = card_calculate_damage(atk, attack_roll);
- 
-    // 1) Block soaks first (like Slay the Spire). Evade is not touched by absorbed hits.
-    if (p->block > 0) {
-        int absorbed = (dmg < p->block) ? dmg : p->block;
-        p->block -= (int16_t)absorbed;
-        dmg -= absorbed;
-        r.blocked = absorbed;
+
+    if (p == NULL || atk == NULL || atk->type != CARD_ATTACK) {
+        return r;
     }
-    if (dmg <= 0) return r;
- 
-    // 2) Damage that got past block faces the evade.
+
+    r.attack_base = atk->damage;
+    r.attack_roll = attack_roll;
+    r.attack_total = atk->damage;
+
+    // Check Evade first.
     if (p->evade > 0) {
-        bool beaten = EVADE_TIES_HOLD ? (attack_roll > p->evade)
-                                      : (attack_roll >= p->evade);
-        if (beaten) {
-            p->evade = 0;              // beaten: evade is gone and the hit lands
+        int attack_result = card_calculate_damage(atk, attack_roll);
+
+        r.attack_total = attack_result;
+
+        if (attack_result > p->evade) {
+            p->evade = 0;
             r.evade_broken = true;
-        } else {
-            // Evade holds, but gets weaker: failure becomes more likely next time
-            p->evade -= EVADE_DECAY;
-            if (p->evade < 0) p->evade = 0;
+        }
+        else {
             r.evaded = true;
             return r;
         }
+
+    // Apply Block after the Evade check.
+    int remaining_damage = r.attack_total;
+
+    if (p->block > 0) {
+        if (p->block >= remaining_damage) {
+            r.blocked = remaining_damage;
+            remaining_damage = 0;
+        }
+        else {
+            r.blocked = p->block;
+            remaining_damage -= p->block;
+        }
     }
- 
-    // 3) Damage reaches HP
-    player_take_damage(p, dmg);
+
+    // Apply remaining damage to HP.
+    player_take_damage(p, remaining_damage);
+
+    r.hp_lost = remaining_damage;
+
+    // The attack landed, so apply stagger damage.
     player_take_stagger_damage(p, atk->stagger_damage);
-    r.hp_lost = dmg;
+
+    return r;
+}
+
+    // Apply damage.
+    player_take_damage(p, r.attack_total);
+    player_take_stagger_damage(p, atk->stagger_damage);
+
+    r.hp_lost = r.attack_total;
+
     return r;
 }
  

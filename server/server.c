@@ -151,25 +151,42 @@ void execute_action(
     // Process attack cards.
     else if (card->type == CARD_ATTACK) {
 
-        int attack_roll = player_roll_card(attacker, card);
+        int attack_roll = 0;
 
-        HitResult result = player_receive_attack(
-            defender, card, attack_roll
-        );
+        // Only roll a d12 if the defender has active Evade.
+        if (defender->evade > 0) {
+            attack_roll = player_roll_card(attacker, card);
+        }
 
-        snprintf(message, sizeof(message),
-                 "Attack roll: %d\n"
-                 "Damage blocked: %d\n"
-                 "Damage dealt: %d\n"
-                 "%s HP remaining: %d\n",
-                 attack_roll,
-                 result.blocked,
-                 result.hp_lost,
-                 defender->name,
-                 defender->hp
-        );
+        HitResult result = player_receive_attack(defender, card, attack_roll);
 
-        broadcast_message(client_sock1, client_sock2, message);
+            if (result.attack_roll > 0) {
+                snprintf(message, sizeof(message),
+                    "Attack: %d(%d) = %d damage\n"
+                    "%s\n"
+                    "Damage dealt: %d\n"
+                    "%s HP remaining: %d\n",
+                    result.attack_base,
+                    result.attack_roll,
+                    result.attack_total,
+                    result.evaded ? "Evade: Successful!" :
+                    result.evade_broken ? "Evade: Broken!" : "",
+                    result.hp_lost,
+                    defender->name,
+                    defender->hp);
+            } else {
+                snprintf(message, sizeof(message),
+                    "Attack: %d = %d damage\n"
+                    "Damage dealt: %d\n"
+                    "%s HP remaining: %d\n",
+                    result.attack_base,
+                    result.attack_total,
+                    result.hp_lost,
+                    defender->name,
+                    defender->hp);
+            }
+
+            broadcast_message(client_sock1, client_sock2, message);
     }
 }
 
@@ -216,58 +233,111 @@ void resolve_combat(
             continue;
         }
 
-        // Both players have an action. Roll for speed.
-        int p1_roll;
-        int p2_roll;
+        // Retrieve both players' selected cards.
+        const Card *p1_card = card_get(player1->combo[p1_index]);
+        const Card *p2_card = card_get(player2->combo[p2_index]);
 
-        do {
-            p1_roll = player_roll_initiative(player1);
-            p2_roll = player_roll_initiative(player2);
+        // Check that both cards are valid.
+        if (p1_card == NULL || p2_card == NULL) {
+            broadcast_message(client_sock1, client_sock2,
+                "Error: Invalid card detected.\n");
 
-            char message[256];
+            p1_index++;
+            p2_index++;
+            continue;
+        }
 
-            snprintf(message, sizeof(message),
-                     "\n%s rolls: %d\n%s rolls: %d\n",
-                     player1->name, p1_roll,
-                     player2->name, p2_roll);
+        // CASE 1: Attack vs. Attack
+        if (p1_card->type == CARD_ATTACK &&
+            p2_card->type == CARD_ATTACK) {
 
-            broadcast_message(client_sock1, client_sock2, message);
+            int p1_roll;
+            int p2_roll;
 
-            if (p1_roll == p2_roll) {
-                broadcast_message(client_sock1, client_sock2,
-                    "It's a tie! Both players reroll.\n");
+            do {
+                p1_roll = player_roll_initiative(player1);
+                p2_roll = player_roll_initiative(player2);
+
+                char message[256];
+
+                snprintf(message, sizeof(message),
+                         "\n%s rolls: %d\n%s rolls: %d\n",
+                         player1->name, p1_roll,
+                         player2->name, p2_roll);
+
+                broadcast_message(client_sock1, client_sock2, message);
+
+                if (p1_roll == p2_roll) {
+                    broadcast_message(client_sock1, client_sock2,
+                        "It's a tie! Both players reroll.\n");
+                }
+
+            } while (p1_roll == p2_roll);
+
+            // Higher initiative executes their attack.
+            if (p1_roll > p2_roll) {
+                char message[128];
+
+                snprintf(message, sizeof(message),
+                         "\n%s wins the speed contest!\n",
+                         player1->name);
+
+                broadcast_message(client_sock1, client_sock2, message);
+
+                execute_action(
+                    player1, player2, p1_index,
+                    client_sock1, client_sock2);
+
+            } else {
+                char message[128];
+
+                snprintf(message, sizeof(message),
+                         "\n%s wins the speed contest!\n",
+                         player2->name);
+
+                broadcast_message(client_sock1, client_sock2, message);
+
+                execute_action(
+                    player2, player1, p2_index,
+                    client_sock1, client_sock2);
             }
+        }
 
-        } while (p1_roll == p2_roll);
+        // CASE 2: Attack vs. Defense
+        else if (p1_card->type == CARD_ATTACK ||
+                 p2_card->type == CARD_ATTACK) {
 
-        // Higher roll executes their action.
-        if (p1_roll > p2_roll) {
+            // Player 1 attacks, Player 2 defends.
+            if (p1_card->type == CARD_ATTACK) {
 
-            char message[128];
+                // Activate Player 2's defense first.
+                execute_action(
+                    player2, player1, p2_index,
+                    client_sock1, client_sock2);
 
-            snprintf(message, sizeof(message),
-                     "\n%s wins the speed contest!\n",
-                     player1->name);
+                // Resolve Player 1's attack afterward.
+                execute_action(
+                    player1, player2, p1_index,
+                    client_sock1, client_sock2);
 
-            broadcast_message(client_sock1, client_sock2, message);
+            } else {
 
-            execute_action(
-                player1, player2, p1_index,
-                client_sock1, client_sock2);
+                // Player 1 defends, Player 2 attacks.
+                execute_action(
+                    player1, player2, p1_index,
+                    client_sock1, client_sock2);
 
-        } else {
+                execute_action(
+                    player2, player1, p2_index,
+                    client_sock1, client_sock2);
+            }
+        }
 
-            char message[128];
-
-            snprintf(message, sizeof(message),
-                     "\n%s wins the speed contest!\n",
-                     player2->name);
-
-            broadcast_message(client_sock1, client_sock2, message);
-
-            execute_action(
-                player2, player1, p2_index,
-                client_sock1, client_sock2);
+        // CASE 3: Defense vs. Defense
+        else {
+            broadcast_message(client_sock1, client_sock2,
+                "Both players selected defensive cards.\n"
+                "Neither card takes effect. Both cards are discarded.\n");
         }
 
         // Both players' paired actions are consumed.
