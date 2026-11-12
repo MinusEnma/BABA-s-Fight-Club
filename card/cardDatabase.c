@@ -2,8 +2,7 @@
 #include "cardDatabase.h"
 #include "../dice/dice.h"
 
-// name, description, type, style, energy_cost, damage,
-// stagger_damage, dice_min, dice_max
+// name, description, type, style, energy_cost, damage, defense, stagger_damage, dice_min, dice_max
 #define CARD_ROW(n, d, t, s, cost, dmg, def, stg, dmin, dmax) \
     { n, d, (uint8_t)(t), (uint8_t)(s), cost, dmg, def, stg, dmin, dmax }
 
