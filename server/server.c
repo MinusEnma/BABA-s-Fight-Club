@@ -103,7 +103,7 @@ void send_player_hand(int client_sock, Player *player) {
         }
 
         snprintf(message, sizeof(message),
-                 "%d. %s | %s | Energy: %d\n",
+                 "%d. %-15s | %-67s | Energy: %d\n",
                  i + 1,
                  card->name,
                  card->description,
@@ -377,6 +377,19 @@ void resolve_combat(
         "\n====================================\n"
         "           ROUND COMPLETE\n"
         "====================================\n");
+    
+    char hp_message[256];
+
+    snprintf(hp_message, sizeof(hp_message),
+        "\n====================================\n"
+        "           PLAYER 1 HP: %d \n"
+        "           PLAYER 2 HP: %d \n"
+        "====================================\n",
+        player1->hp,
+        player2->hp
+     );
+
+    broadcast_message(client_sock1, client_sock2, hp_message);
 
     // Clear temporary defensive effects.
     player_end_turn(player1);
@@ -385,10 +398,6 @@ void resolve_combat(
     // Move all queued cards into the discard piles.
     player_clear_queue(player1);
     player_clear_queue(player2);
-
-    // Notify clients that combat updates have finished.
-    broadcast_message(client_sock1, client_sock2,
-                      "ROUND_COMPLETE\n");
 }
 // Process a player's card-selection command.
 void handle_selection_command(
