@@ -77,9 +77,9 @@ void player_take_stagger_damage(Player *p, int amount);
 bool player_is_stunned(const Player *p);
  
 // Defense
-void      player_activate_defense(Player *p, const Card *c);                  // roll a BLOCK/EVADE card into block/evade
+void player_activate_defense(Player *p, const Card *c, int *roll_out, int *value_out);                  // roll a BLOCK/EVADE card into block/evade
 HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll); // block -> evade -> HP
-void      player_end_turn(Player *p);                                         // block expires (evade stays until round end)
+void player_end_turn(Player *p);                                         // block expires (evade stays until round end)
  
 // Round handling.
 // Start of game:  player_build_deck();  player_reset_round();

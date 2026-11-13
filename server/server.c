@@ -145,7 +145,35 @@ void execute_action(
 
     // Activate defensive cards.
     if (card->type == CARD_BLOCK || card->type == CARD_EVADE) {
-        player_activate_defense(attacker, card);
+
+        int defense_roll = 0;
+        int defense_total = 0;
+
+        player_activate_defense(
+            attacker,
+            card,
+            &defense_roll,
+            &defense_total
+        );
+
+        if (card->type == CARD_BLOCK) {
+            snprintf(message, sizeof(message),
+                "Block: %d(%d) = %d\n",
+                card->defense_value,
+                defense_roll,
+                defense_total
+            );
+        }
+        else {
+            snprintf(message, sizeof(message),
+                "Evade: %d(%d) = %d\n",
+                card->defense_value,
+                defense_roll,
+                defense_total
+            );
+        }
+
+        broadcast_message(client_sock1, client_sock2, message);
     }
 
     // Process attack cards.

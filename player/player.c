@@ -154,11 +154,22 @@ bool player_is_stunned(const Player *p) {
 // Defense (block / evade)
 // ---------------------------------------------------------------
 // Called when a BLOCK or EVADE card is played.
-void player_activate_defense(Player *p, const Card *c) {
+void player_activate_defense(
+    Player *p,
+    const Card *c,
+    int *roll_out,
+    int *value_out
+) {
+    if (roll_out != NULL) *roll_out = 0;
+    if (value_out != NULL) *value_out = 0;
+
     if (p == NULL || c == NULL) return;
 
     int roll = card_roll_dice(c);
     int value = card_calculate_defense(c, roll);
+
+    if (roll_out != NULL) *roll_out = roll;
+    if (value_out != NULL) *value_out = value;
 
     if (c->type == CARD_BLOCK) {
         p->block = value;
@@ -187,6 +198,7 @@ int card_calculate_defense(const Card *c, int roll)
  
 // Resolves one attack against this player.
 // attack_roll is the raw dice roll, which is what gets tested against evade.
+
 HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
     HitResult r = {0};
 
@@ -212,6 +224,7 @@ HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
             r.evaded = true;
             return r;
         }
+    }
 
     // Apply Block after the Evade check.
     int remaining_damage = r.attack_total;
@@ -234,15 +247,6 @@ HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
 
     // The attack landed, so apply stagger damage.
     player_take_stagger_damage(p, atk->stagger_damage);
-
-    return r;
-}
-
-    // Apply damage.
-    player_take_damage(p, r.attack_total);
-    player_take_stagger_damage(p, atk->stagger_damage);
-
-    r.hp_lost = r.attack_total;
 
     return r;
 }
