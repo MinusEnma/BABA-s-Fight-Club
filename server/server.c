@@ -80,7 +80,8 @@ const char *get_style_name(int selection) {
 void send_player_hand(int client_sock, Player *player) {
     char message[256];
 
-    send_message(client_sock, "===== YOUR HAND =====\n");
+    send_message(client_sock,
+        "===== YOUR HAND =====\n");
 
     char energy_message[64];
 
@@ -103,7 +104,7 @@ void send_player_hand(int client_sock, Player *player) {
         }
 
         snprintf(message, sizeof(message),
-                 "%d. %-15s | %-67s | Energy: %d\n",
+                 "%d. %-25s | %-67s | Energy: %d\n",
                  i + 1,
                  card->name,
                  card->description,
@@ -179,12 +180,7 @@ void execute_action(
     // Process attack cards.
     else if (card->type == CARD_ATTACK) {
 
-        int attack_roll = 0;
-
-        // Only roll a d12 if the defender has active Evade.
-        if (defender->evade > 0) {
-            attack_roll = player_roll_card(attacker, card);
-        }
+        int attack_roll = player_roll_card(attacker, card);
 
         HitResult result = player_receive_attack(defender, card, attack_roll);
 
@@ -373,23 +369,21 @@ void resolve_combat(
         p2_index++;
     }
 
-    broadcast_message(client_sock1, client_sock2,
-        "\n====================================\n"
-        "           ROUND COMPLETE\n"
-        "====================================\n");
-    
-    char hp_message[256];
+    char round_message[256];
 
-    snprintf(hp_message, sizeof(hp_message),
+    snprintf(round_message, sizeof(round_message),
         "\n====================================\n"
-        "           PLAYER 1 HP: %d \n"
-        "           PLAYER 2 HP: %d \n"
-        "====================================\n",
+        "             ROUND COMPLETE\n"
+        "====================================\n"
+        "           PLAYER 1 HP: %d\n"
+        "           PLAYER 2 HP: %d\n"
+        "====================================\n"
+        "ROUND_COMPLETE\n",
         player1->hp,
         player2->hp
-     );
+    );
 
-    broadcast_message(client_sock1, client_sock2, hp_message);
+    broadcast_message(client_sock1, client_sock2, round_message);
 
     // Clear temporary defensive effects.
     player_end_turn(player1);
@@ -746,9 +740,44 @@ int main(int argc, char *argv[]) {
             client_sock2
         );
 
-        // Check whether a player has been defeated.
+        // Check whether the encounter has ended.
         if (player1.hp <= 0 || player2.hp <= 0) {
+
             encounter_finished = 1;
+
+            // Both players were defeated.
+            if (player1.hp <= 0 && player2.hp <= 0) {
+                broadcast_message(client_sock1, client_sock2,
+                    "\n====================================\n"
+                    "              DRAW!\n"
+                    "====================================\n"
+                    "Both players have been defeated!\n"
+                    "The encounter ends in a draw.\n"
+                    "====================================\n");
+            }
+
+            // Player 2 wins.
+            else if (player1.hp <= 0) {
+                broadcast_message(client_sock1, client_sock2,
+                    "\n====================================\n"
+                    "             DEFEAT!\n"
+                    "====================================\n"
+                    "Player 1 has been defeated!\n"
+                    "PLAYER 2 WINS!\n"
+                    "====================================\n");
+            }
+
+            // Player 1 wins.
+            else {
+                broadcast_message(client_sock1, client_sock2,
+                    "\n====================================\n"
+                    "             VICTORY!\n"
+                    "====================================\n"
+                    "Player 2 has been defeated!\n"
+                    "PLAYER 1 WINS!\n"
+                    "====================================\n");
+            }
+
             break;
         }
 
@@ -756,10 +785,17 @@ int main(int argc, char *argv[]) {
         player_reset_round(&player1);
         player_reset_round(&player2);
 
-        // Send the new hands to their respective clients.
+        // Notify both clients that the next round is starting.
         send_message(client_sock1, "NEXT_ROUND\n");
         send_message(client_sock2, "NEXT_ROUND\n");
 
+        // Display the round announcement.
+        broadcast_message(client_sock1, client_sock2,
+            "\n====================================\n"
+            "              NEXT ROUND"
+            "\n====================================\n");
+
+        // Send the updated hands.
         send_player_hand(client_sock1, &player1);
         send_player_hand(client_sock2, &player2);
 

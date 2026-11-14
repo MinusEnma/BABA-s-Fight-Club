@@ -208,15 +208,11 @@ HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
 
     r.attack_base = atk->damage;
     r.attack_roll = attack_roll;
-    r.attack_total = atk->damage;
+    r.attack_total = card_calculate_damage(atk, attack_roll);
 
     // Check Evade first.
     if (p->evade > 0) {
-        int attack_result = card_calculate_damage(atk, attack_roll);
-
-        r.attack_total = attack_result;
-
-        if (attack_result > p->evade) {
+        if (r.attack_total > p->evade) {
             p->evade = 0;
             r.evade_broken = true;
         }

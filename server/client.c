@@ -291,21 +291,18 @@ int main(int argc, char *argv[]) {
             printf("====================================\n");
 
             while (1) {
-                memset(buffer, 0, sizeof(buffer));
-
                 n = receive_line(client_sock, buffer, sizeof(buffer));
 
                 if (n < 0) {
-                    printf("\nServer disconnected.\n");
+                    printf("Server disconnected.\n");
                     goto cleanup;
                 }
 
-                printf("%s\n", buffer);
-
-                // Stop receiving when the round is complete.
                 if (strcmp(buffer, "ROUND_COMPLETE") == 0) {
                     break;
                 }
+
+                printf("%s\n", buffer);
             }
 
             // Wait for the next round or encounter result.
@@ -323,11 +320,9 @@ int main(int argc, char *argv[]) {
                     break;
                 }
 
-                printf("[server] > %s\n", buffer);
+                printf("%s\n", buffer);
             }
 
-            // Receive the new hand.
-            printf("\n===== NEXT ROUND =====\n");
 
             while (1) {
                 memset(buffer, 0, sizeof(buffer));
