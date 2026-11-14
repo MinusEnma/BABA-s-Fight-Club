@@ -131,19 +131,63 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Ask the player for a fighting style.
-    printf("[you] > ");
+    // Keep asking until the server accepts the selection.
+    while (1) {
 
-    if (fgets(choice, sizeof(choice), stdin) == NULL) {
-        goto cleanup;
-    }
+        // Ask the player for a fighting style.
+        printf("[you] > ");
 
-    // Send the selection to the server.
-    n = send(client_sock, choice, strlen(choice), 0);
+        if (fgets(choice, sizeof(choice), stdin) == NULL) {
+            goto cleanup;
+        }
 
-    if (n < 0) {
-        printf("Error sending selection.\n");
-        goto cleanup;
+        // Send the selection to the server.
+        n = send(client_sock, choice, strlen(choice), 0);
+
+        if (n < 0) {
+            printf("Error sending selection.\n");
+            goto cleanup;
+        }
+
+        // Receive the server's response.
+        memset(buffer, 0, sizeof(buffer));
+
+        n = receive_line(client_sock, buffer, sizeof(buffer));
+
+        if (n < 0) {
+            printf("Server disconnected.\n");
+            goto cleanup;
+        }
+
+        // If the selection is invalid, display the menu again.
+        if (strcmp(buffer, "STYLE_INVALID") == 0) {
+
+            clear_screen();
+
+            while (1) {
+                memset(buffer, 0, sizeof(buffer));
+
+                n = receive_line(client_sock, buffer, sizeof(buffer));
+
+                if (n < 0) {
+                    printf("Server disconnected.\n");
+                    goto cleanup;
+                }
+
+                printf("%s\n", buffer);
+
+                if (strcmp(buffer, "Enter your choice (1-5): ") == 0) {
+                    break;
+                }
+            }
+
+            continue;
+        }
+
+        // If the selection is accepted, proceed.
+        if (strcmp(buffer, "STYLE_ACCEPTED") == 0) {
+            break;
+        }
     }
 
     // Clear the terminal after choosing a fighting style.

@@ -238,31 +238,7 @@ HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
             r.evaded = true;
             return r;
         }
-
-    // Apply Block after the Evade check.
-    int remaining_damage = r.attack_total;
-
-    if (p->block > 0) {
-        if (p->block >= remaining_damage) {
-            r.blocked = remaining_damage;
-            remaining_damage = 0;
-        }
-        else {
-            r.blocked = p->block;
-            remaining_damage -= p->block;
-        }
     }
-
-    // Apply remaining damage to HP.
-    player_take_damage(p, remaining_damage);
-
-    r.hp_lost = remaining_damage;
-
-    // The attack landed, so apply stagger damage.
-    player_take_stagger_damage(p, atk->stagger_damage);
-
-    return r;
-}
 
     // Apply Block after the Evade check.
     int remaining_damage = r.attack_total;

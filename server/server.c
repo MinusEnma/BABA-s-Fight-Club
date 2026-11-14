@@ -624,6 +624,16 @@ void resolve_combat(
     player_clear_queue(player2);
 }
 
+void send_selection_error(
+    int client_sock,
+    const char *message,
+    Player *player
+) {
+    send_message(client_sock, message);
+    send_message(client_sock, "HAND_UPDATE\n");
+    send_player_hand(client_sock, player);
+}
+
 // Process a player's card-selection command.
 void handle_selection_command(
     int client_sock,
@@ -656,7 +666,7 @@ void handle_selection_command(
     int hand_index = card_number - 1;
 
     if (hand_index < 0 || hand_index >= player->hand_count) {
-        send_message(client_sock, "Invalid card number.\n");
+        send_selection_error(client_sock, "ERROR: Invalid card number.\n", player);
         return;
     }
 
@@ -664,20 +674,19 @@ void handle_selection_command(
     const Card *card = card_get(player->hand[hand_index]);
 
     if (card == NULL) {
-        send_message(client_sock, "Invalid card.\n");
+        send_selection_error(client_sock, "ERROR: Invalid card.\n", player);
         return;
     }
 
     // Check whether the player has enough Energy.
     if (card->energy_cost > player->energy) {
-        send_message(client_sock, "Not enough Energy.\n");
+        send_selection_error(client_sock, "ERROR: Not enough Energy.\n", player);
         return;
     }
 
     // Queue the card and remove it from the player's hand.
     if (!player_queue_combo(player, hand_index)) {
-        send_message(client_sock,
-                     "Unable to select card. Your action queue may be full.\n");
+        send_selection_error(client_sock, "ERROR: Unable to select card. Your action queue may be full.\n", player);
         return;
     }
 
@@ -863,11 +872,16 @@ int main(int argc, char *argv[]) {
         player1_choice = atoi(buffer);
 
         if (player1_choice >= 1 && player1_choice <= 5) {
+            send_message(client_sock1, "STYLE_ACCEPTED\n");
             break;
         }
 
+        send_message(client_sock1, "STYLE_INVALID\n");
+
         send_message(client_sock1,
-                     "Invalid selection. Please enter a number from 1 to 5: \n");
+                     "\nInvalid selection. Please enter a number from 1 to 5: \n");
+
+        send_message(client_sock1, style_menu);
     }
 
     printf("Player 1 selected: %s\n",
@@ -889,11 +903,16 @@ int main(int argc, char *argv[]) {
         player2_choice = atoi(buffer);
 
         if (player2_choice >= 1 && player2_choice <= 5) {
+            send_message(client_sock2, "STYLE_ACCEPTED\n");
             break;
         }
 
+        send_message(client_sock2, "STYLE_INVALID\n");
+
         send_message(client_sock2,
-                     "Invalid selection. Please enter a number from 1 to 5: \n");
+                     "\nInvalid selection. Please enter a number from 1 to 5: \n");
+
+        send_message(client_sock2, style_menu);
     }
 
     printf("Player 2 selected: %s\n",
