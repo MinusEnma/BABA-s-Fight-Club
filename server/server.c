@@ -167,9 +167,7 @@ void execute_action(
         }
         else {
             snprintf(message, sizeof(message),
-                "Evade: %d(%d) = %d\n",
-                card->defense_value,
-                defense_roll,
+                "Evade activated! Base value: %d\n",
                 defense_total
             );
         }
@@ -184,35 +182,41 @@ void execute_action(
 
         HitResult result = player_receive_attack(defender, card, attack_roll);
 
-            if (result.attack_roll > 0) {
-                snprintf(message, sizeof(message),
-                    "Attack: %d(%d) = %d damage\n"
-                    "%s\n"
-                    "Damage dealt: %d\n"
-                    "%s HP remaining: %d\n",
-                    result.attack_base,
-                    result.attack_roll,
-                    result.attack_total,
-                    result.evaded ? "Evade: Successful!" :
-                    result.evade_broken ? "Evade: Broken!" : "",
-                    result.hp_lost,
-                    defender->name,
-                    defender->hp);
-            } else {
-                snprintf(message, sizeof(message),
-                    "Attack: %d = %d damage\n"
-                    "Damage dealt: %d\n"
-                    "%s HP remaining: %d\n",
-                    result.attack_base,
-                    result.attack_total,
-                    result.hp_lost,
-                    defender->name,
-                    defender->hp);
-            }
+        if (result.evade_checked) {
+            snprintf(message, sizeof(message),
+                "Attack: %d(%d) = %d damage\n"
+                "Evade: %d(%d) = %d\n"
+                "Evade: %s\n"
+                "Damage dealt: %d\n"
+                "%s HP remaining: %d\n",
+                result.attack_base,
+                result.attack_roll,
+                result.attack_total,
+                result.evade_base,
+                result.evade_roll,
+                result.evade_total,
+                result.evaded ? "Successful!" : "Broken!",
+                result.hp_lost,
+                defender->name,
+                defender->hp);
+        }
+        else {
+            snprintf(message, sizeof(message),
+                "Attack: %d(%d) = %d damage\n"
+                "Damage dealt: %d\n"
+                "%s HP remaining: %d\n",
+                result.attack_base,
+                result.attack_roll,
+                result.attack_total,
+                result.hp_lost,
+                defender->name,
+                defender->hp);
+        }
 
-            broadcast_message(client_sock1, client_sock2, message);
+        broadcast_message(client_sock1, client_sock2, message);
     }
 }
+
 
 // Resolve both players' selected action sequences.
 void resolve_combat(
@@ -239,27 +243,231 @@ void resolve_combat(
         int p1_has_action = p1_index < player1->combo_count;
         int p2_has_action = p2_index < player2->combo_count;
 
+        // CASE 0: Handle active Evade.
+
+        // If Player 1 has Evade but Player 2 has no actions left,
+        // discard the queued Evade card and end the stance.
+        if (player1->evade > 0 && !p2_has_action) {
+            player1->evade = 0;
+            player1->evade_dice_min = 0;
+            player1->evade_dice_max = 0;
+
+            if (p1_has_action) {
+                p1_index++;
+            }
+
+            broadcast_message(client_sock1, client_sock2,
+                "Player 2 has no remaining actions. "
+                "Player 1's Evade stance ends. "
+                "The queued Evade card is discarded.\n");
+        }
+
+        // Same rule for Player 2.
+        if (player2->evade > 0 && !p1_has_action) {
+            player2->evade = 0;
+            player2->evade_dice_min = 0;
+            player2->evade_dice_max = 0;
+
+            if (p2_has_action) {
+                p2_index++;
+            }
+
+            broadcast_message(client_sock1, client_sock2,
+                "Player 1 has no remaining actions. "
+                "Player 2's Evade stance ends. "
+                "The queued Evade card is discarded.\n");
+        }
+
+        // Recheck action availability after possible discards.
+        p1_has_action = p1_index < player1->combo_count;
+        p2_has_action = p2_index < player2->combo_count;
+
+        // Stop combat if both players have exhausted their actions.
+        if (!p1_has_action && !p2_has_action) {
+            break;
+        }
+
+        // Safeguard: both players should not normally have
+        // active Evade at the same time.
+        if (player1->evade > 0 && player2->evade > 0 &&
+            p1_has_action && p2_has_action) {
+
+            player1->evade = 0;
+            player1->evade_dice_min = 0;
+            player1->evade_dice_max = 0;
+
+            player2->evade = 0;
+            player2->evade_dice_min = 0;
+            player2->evade_dice_max = 0;
+
+            broadcast_message(client_sock1, client_sock2,
+                "Both players have active Evade. "
+                "Both queued defensive cards are discarded.\n");
+
+            p1_index++;
+            p2_index++;
+
+            player_end_turn(player1);
+            player_end_turn(player2);
+
+            continue;
+        }
+
+        // Player 1 is evading: pause their action sequence.
+        if (player1->evade > 0 && p2_has_action) {
+            const Card *p2_card =
+                card_get(player2->combo[p2_index]);
+
+            if (p2_card == NULL) {
+                broadcast_message(client_sock1, client_sock2,
+                    "Player 2 has an invalid card.\n");
+            }
+            else if (p2_card->type == CARD_ATTACK) {
+                // Player 2 attacks while Player 1 maintains Evade.
+                execute_action(
+                    player2, player1, p2_index,
+                    client_sock1, client_sock2);
+            }
+            else {
+                // Both defensive cards are discarded.
+                char message[256];
+
+                snprintf(message, sizeof(message),
+                    "%s's %s and %s's queued Evade card "
+                    "are discarded.\n",
+                    player2->name,
+                    p2_card->name,
+                    player1->name);
+
+                broadcast_message(client_sock1, client_sock2,
+                    message);
+
+                // End Player 1's Evade stance.
+                player1->evade = 0;
+                player1->evade_dice_min = 0;
+                player1->evade_dice_max = 0;
+            }
+
+            // Player 2 consumes their action.
+            p2_index++;
+
+            // Consume Slip Dodge only if Evade ended.
+            // Otherwise, keep it at the front of the queue.
+            if (player1->evade == 0 && p1_has_action) {
+                p1_index++;
+            }
+
+            player_end_turn(player1);
+            player_end_turn(player2);
+
+            continue;
+        }
+
+        // Player 2 is evading: pause their action sequence.
+        if (player2->evade > 0 && p1_has_action) {
+            const Card *p1_card =
+                card_get(player1->combo[p1_index]);
+
+            if (p1_card == NULL) {
+                broadcast_message(client_sock1, client_sock2,
+                    "Player 1 has an invalid card.\n");
+            }
+            else if (p1_card->type == CARD_ATTACK) {
+                // Player 1 attacks while Player 2 maintains Evade.
+                execute_action(
+                    player1, player2, p1_index,
+                    client_sock1, client_sock2);
+            }
+            else {
+                // Both defensive cards are discarded.
+                char message[256];
+
+                snprintf(message, sizeof(message),
+                    "%s's %s and %s's queued Evade card "
+                    "are discarded.\n",
+                    player1->name,
+                    p1_card->name,
+                    player2->name);
+
+                broadcast_message(client_sock1, client_sock2,
+                    message);
+
+                // End Player 2's Evade stance.
+                player2->evade = 0;
+                player2->evade_dice_min = 0;
+                player2->evade_dice_max = 0;
+            }
+
+            // Player 1 consumes their action.
+            p1_index++;
+
+            // Consume Slip Dodge only if Evade ended.
+            if (player2->evade == 0 && p2_has_action) {
+                p2_index++;
+            }
+
+            player_end_turn(player1);
+            player_end_turn(player2);
+
+            continue;
+        }
+
         // If only Player 1 has an action remaining.
         if (p1_has_action && !p2_has_action) {
-            execute_action(
-                player1, player2, p1_index,
-                client_sock1, client_sock2);
+            const Card *card =
+                card_get(player1->combo[p1_index]);
+
+            if (card != NULL && card->type == CARD_ATTACK) {
+                // Execute attacks without an opponent action.
+                execute_action(
+                    player1, player2, p1_index,
+                    client_sock1, client_sock2);
+            }
+            else {
+                // Defensive cards are discarded.
+                broadcast_message(client_sock1, client_sock2,
+                    "Player 1's remaining defensive card "
+                    "is discarded. There is no incoming attack.\n");
+            }
+
+            player_end_turn(player1);
+            player_end_turn(player2);
+
             p1_index++;
             continue;
         }
 
         // If only Player 2 has an action remaining.
         if (!p1_has_action && p2_has_action) {
-            execute_action(
-                player2, player1, p2_index,
-                client_sock1, client_sock2);
+            const Card *card =
+                card_get(player2->combo[p2_index]);
+
+            if (card != NULL && card->type == CARD_ATTACK) {
+                // Execute attacks without an opponent action.
+                execute_action(
+                    player2, player1, p2_index,
+                    client_sock1, client_sock2);
+            }
+            else {
+                // Defensive cards are discarded.
+                broadcast_message(client_sock1, client_sock2,
+                    "Player 2's remaining defensive card "
+                    "is discarded. There is no incoming attack.\n");
+            }
+
+            player_end_turn(player1);
+            player_end_turn(player2);
+
             p2_index++;
             continue;
         }
 
         // Retrieve both players' selected cards.
-        const Card *p1_card = card_get(player1->combo[p1_index]);
-        const Card *p2_card = card_get(player2->combo[p2_index]);
+        const Card *p1_card =
+            card_get(player1->combo[p1_index]);
+
+        const Card *p2_card =
+            card_get(player2->combo[p2_index]);
 
         // Check that both cards are valid.
         if (p1_card == NULL || p2_card == NULL) {
@@ -285,11 +493,12 @@ void resolve_combat(
                 char message[256];
 
                 snprintf(message, sizeof(message),
-                         "\n%s rolls: %d\n%s rolls: %d\n",
-                         player1->name, p1_roll,
-                         player2->name, p2_roll);
+                    "\n%s rolls: %d\n%s rolls: %d\n",
+                    player1->name, p1_roll,
+                    player2->name, p2_roll);
 
-                broadcast_message(client_sock1, client_sock2, message);
+                broadcast_message(client_sock1, client_sock2,
+                    message);
 
                 if (p1_roll == p2_roll) {
                     broadcast_message(client_sock1, client_sock2,
@@ -303,8 +512,14 @@ void resolve_combat(
                 char message[128];
 
                 snprintf(message, sizeof(message),
-                         "\n%s wins the speed contest!\n",
-                         player1->name);
+                    "\n%s wins the speed contest!\n",
+                    player1->name);
+
+                broadcast_message(client_sock1, client_sock2, message);
+
+                snprintf(message, sizeof(message),
+                    "%s's %s is cancelled!\n",
+                    player2->name, p2_card->name);
 
                 broadcast_message(client_sock1, client_sock2, message);
 
@@ -316,8 +531,14 @@ void resolve_combat(
                 char message[128];
 
                 snprintf(message, sizeof(message),
-                         "\n%s wins the speed contest!\n",
-                         player2->name);
+                    "\n%s wins the speed contest!\n",
+                    player2->name);
+
+                broadcast_message(client_sock1, client_sock2, message);
+
+                snprintf(message, sizeof(message),
+                    "%s's %s is cancelled!\n",
+                    player1->name, p1_card->name);
 
                 broadcast_message(client_sock1, client_sock2, message);
 
@@ -351,6 +572,7 @@ void resolve_combat(
                     player1, player2, p1_index,
                     client_sock1, client_sock2);
 
+                // Resolve Player 2's attack afterward.
                 execute_action(
                     player2, player1, p2_index,
                     client_sock1, client_sock2);
@@ -364,9 +586,21 @@ void resolve_combat(
                 "Neither card takes effect. Both cards are discarded.\n");
         }
 
-        // Both players' paired actions are consumed.
-        p1_index++;
-        p2_index++;
+        // Both players' paired actions are consumed,
+        // except when an Evade stance remains active.
+        if (!(p1_card->type == CARD_EVADE &&
+              player1->evade > 0)) {
+            p1_index++;
+        }
+
+        if (!(p2_card->type == CARD_EVADE &&
+              player2->evade > 0)) {
+            p2_index++;
+        }
+
+        // Clear temporary Block effects after the exchange.
+        player_end_turn(player1);
+        player_end_turn(player2);
     }
 
     char round_message[256];
@@ -385,14 +619,11 @@ void resolve_combat(
 
     broadcast_message(client_sock1, client_sock2, round_message);
 
-    // Clear temporary defensive effects.
-    player_end_turn(player1);
-    player_end_turn(player2);
-
     // Move all queued cards into the discard piles.
     player_clear_queue(player1);
     player_clear_queue(player2);
 }
+
 // Process a player's card-selection command.
 void handle_selection_command(
     int client_sock,

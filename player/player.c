@@ -143,6 +143,8 @@ void player_take_stagger_damage(Player *p, int amount) {
         player_clear_queue(p);
         p->block = 0;
         p->evade = 0;
+        p->evade_dice_min = 0;
+        p->evade_dice_max = 0;
     }
 }
 
@@ -165,17 +167,23 @@ void player_activate_defense(
 
     if (p == NULL || c == NULL) return;
 
-    int roll = card_roll_dice(c);
-    int value = card_calculate_defense(c, roll);
-
-    if (roll_out != NULL) *roll_out = roll;
-    if (value_out != NULL) *value_out = value;
-
     if (c->type == CARD_BLOCK) {
+        int roll = card_roll_dice(c);
+        int value = card_calculate_defense(c, roll);
+
         p->block = value;
+
+        if (roll_out != NULL) *roll_out = roll;
+        if (value_out != NULL) *value_out = value;
     }
     else if (c->type == CARD_EVADE) {
-        p->evade = value;
+        p->evade = c->defense_value;
+        p->evade_dice_min = c->dice_min;
+        p->evade_dice_max = c->dice_max;
+
+        if (value_out != NULL) {
+            *value_out = c->defense_value;
+        }
     }
 }
 
@@ -212,15 +220,49 @@ HitResult player_receive_attack(Player *p, const Card *atk, int attack_roll) {
 
     // Check Evade first.
     if (p->evade > 0) {
-        if (r.attack_total > p->evade) {
+        r.evade_checked = true;
+        r.evade_base = p->evade;
+        r.evade_roll = roll_range(
+            p->evade_dice_min,
+            p->evade_dice_max
+        );
+        r.evade_total = r.evade_base + r.evade_roll;
+
+        if (r.attack_total > r.evade_total) {
             p->evade = 0;
+            p->evade_dice_min = 0;
+            p->evade_dice_max = 0;
             r.evade_broken = true;
         }
         else {
             r.evaded = true;
             return r;
         }
+
+    // Apply Block after the Evade check.
+    int remaining_damage = r.attack_total;
+
+    if (p->block > 0) {
+        if (p->block >= remaining_damage) {
+            r.blocked = remaining_damage;
+            remaining_damage = 0;
+        }
+        else {
+            r.blocked = p->block;
+            remaining_damage -= p->block;
+        }
     }
+
+    // Apply remaining damage to HP.
+    player_take_damage(p, remaining_damage);
+
+    r.hp_lost = remaining_damage;
+
+    // The attack landed, so apply stagger damage.
+    player_take_stagger_damage(p, atk->stagger_damage);
+
+    return r;
+}
 
     // Apply Block after the Evade check.
     int remaining_damage = r.attack_total;
@@ -264,6 +306,8 @@ void player_reset_round(Player *p) {
     p->stunned = 0;
     p->block = 0;               // the clash is over, so both defenses end
     p->evade = 0;
+    p->evade_dice_min = 0;
+    p->evade_dice_max = 0;
     p->energy = ROUND_ENERGY;
     p->has_initiative = 0;
 }

@@ -32,8 +32,10 @@ typedef struct {
     uint8_t has_initiative, stunned;
 
 
-    int16_t block;                // Slay-the-Spire style pool: absorbs damage before HP, expires after the turn
-    int16_t evade;                // 0 = none active, else the threshold an attack roll is compared to; lasts for the clash
+    int16_t block;          // Slay-the-Spire style pool: absorbs damage before HP, expires after the turn
+    int16_t evade;          // 0 = none active, else the threshold an attack roll is compared to; lasts for the clash
+    int16_t evade_dice_min; // Minimum possible Evade roll
+    int16_t evade_dice_max; // Maximum possible Evade roll
 
     uint8_t deck[MAX_DECK];       uint8_t deck_count;      // draw pile
     uint8_t hand[MAX_HAND];       uint8_t hand_count;
@@ -51,6 +53,10 @@ typedef struct {
     int attack_base;      // base attack damage
     int attack_roll;      // roll of the attack
     int attack_total;     // attack total damage
+    bool evade_checked;   // whether an Evade check occurred
+    int evade_base;       // persistent base Evade value
+    int evade_roll;       // fresh dice roll for this attack
+    int evade_total;      // base Evade + fresh roll
 } HitResult;
 
 // Setup
