@@ -239,6 +239,8 @@ void resolve_combat(
         broadcast_message(client_sock1, client_sock2,
             "\n---------- NEW EXCHANGE ----------\n");
 
+        sleep(3);
+
         // Check whether both players still have an action.
         int p1_has_action = p1_index < player1->combo_count;
         int p2_has_action = p2_index < player2->combo_count;
