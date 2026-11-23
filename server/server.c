@@ -354,6 +354,8 @@ void execute_action(
 
         int attack_roll = player_roll_card(attacker, card);
 
+        bool defender_was_stunned = player_is_stunned(defender);
+
         HitResult result = player_receive_attack(defender, card, attack_roll);
 
         // Record the attacker's raw dice roll.
@@ -419,6 +421,27 @@ void execute_action(
         }
 
         broadcast_message(client_sock1, client_sock2, message);
+        // Display the defender's remaining stagger.
+        snprintf(message, sizeof(message),
+            "%s Stagger: %d/%d\n",
+            defender->name,
+            defender->stagger,
+            START_STAGGER
+        );
+
+        broadcast_message(client_sock1, client_sock2, message);
+
+        // Announce when the defender becomes staggered.
+        if (!defender_was_stunned && player_is_stunned(defender)) {
+            snprintf(message, sizeof(message),
+                "%s has been STAGGERED!\n"
+                "%s cannot use any more cards this round.\n",
+                defender->name,
+                defender->name
+            );
+
+            broadcast_message(client_sock1, client_sock2, message);
+        }
     }
 }
 
