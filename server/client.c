@@ -283,9 +283,27 @@ int main(int argc, char *argv[]) {
         printf("===== CARD SELECTION =====\n");
         printf("\n[server] > %s\n", buffer);
 
-        // Refresh the displayed hand after a successful selection.
-        if (strncmp(buffer, "Selected:", 9) == 0) {
+        // Determine whether the hand needs to be refreshed.
+        int update_hand = (strncmp(buffer, "Selected:", 9) == 0);
 
+        // For errors, receive the HAND_UPDATE marker from the server.
+        if (!update_hand && strcmp(choice, "READY") != 0) {
+            memset(buffer, 0, sizeof(buffer));
+
+            n = receive_line(client_sock, buffer, sizeof(buffer));
+
+            if (n < 0) {
+                printf("Server disconnected.\n");
+                goto cleanup;
+            }
+
+            if (strcmp(buffer, "HAND_UPDATE") == 0) {
+                update_hand = 1;
+            }
+        }
+
+        // Display the updated hand.
+        if (update_hand) {
             printf("\n===== UPDATED HAND =====\n");
 
             while (1) {
@@ -510,8 +528,6 @@ int main(int argc, char *argv[]) {
             printf("\n===== CARD SELECTION =====\n");
         }
     }
-
-    printf("\nCard selection completed.\n");
 
 cleanup:
 

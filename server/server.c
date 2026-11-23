@@ -295,6 +295,11 @@ void execute_action(
     int client_sock1,
     int client_sock2
 ) {
+    // Stop the action if either player has been defeated.
+    if (attacker->hp <= 0 || defender->hp <= 0) {
+        return;
+    }
+
     uint8_t card_id = attacker->combo[action_number];
     const Card *card = card_get(card_id);
 
@@ -461,8 +466,10 @@ void resolve_combat(
         "           COMBAT BEGINS\n"
         "====================================\n");
 
-    while (p1_index < player1->combo_count ||
-           p2_index < player2->combo_count) {
+    while ((p1_index < player1->combo_count ||
+            p2_index < player2->combo_count) &&
+        player1->hp > 0 &&
+        player2->hp > 0) {
 
         broadcast_message(client_sock1, client_sock2,
             "\n---------- NEW EXCHANGE ----------\n");
@@ -898,8 +905,11 @@ void handle_selection_command(
     char extra;
 
     if (sscanf(command, "PICK %d %c", &card_number, &extra) != 1) {
-        send_message(client_sock,
-                     "Invalid command. Use PICK <number> or READY.\n");
+        send_selection_error(
+            client_sock,
+            "Invalid command. Use PICK <number> or READY.\n",
+            player
+        );
         return;
     }
 
@@ -1350,8 +1360,6 @@ int main(int argc, char *argv[]) {
 cleanup:
 
     // Close both client connections.
-    printf("\nBoth players have selected their fighting styles!\n");
-
     close(client_sock1);
     close(client_sock2);
 
