@@ -238,6 +238,8 @@ int main(int argc, char *argv[]) {
     // Begin the card-selection phase.
     printf("\n===== CARD SELECTION =====\n");
 
+    int match_over = 0;
+
     while (1) {
 
         printf("\nEnter a card number to select it, or READY to finish.\n");
@@ -349,7 +351,7 @@ int main(int argc, char *argv[]) {
                 printf("%s\n", buffer);
             }
 
-            // Wait for the next round or encounter result.
+            // Wait for the next round or match result.
             while (1) {
                 memset(buffer, 0, sizeof(buffer));
 
@@ -364,7 +366,17 @@ int main(int argc, char *argv[]) {
                     break;
                 }
 
+                if (strcmp(buffer, "MATCH_OVER") == 0) {
+                    match_over = 1;
+                    break;
+                }
+
                 printf("%s\n", buffer);
+            }
+
+            // Exit the card-selection loop if the match has ended.
+            if (match_over) {
+                break;
             }
 
 

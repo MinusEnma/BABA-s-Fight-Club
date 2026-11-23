@@ -22,11 +22,23 @@
                                // 0: attack must be strictly LOWER to be evaded
 #define EVADE_MAX  11    // an attack d12 can roll 12, so evade 12+ would be unbeatable
 
+
+// Keeps track of important stats to display at end of game
+typedef struct {
+    int highest_damage;         // highest attack_total
+    int highest_roll;           // highest unmodified dice result, regardless of roll type
+    int successful_attacks;     // attacks that cause at least 1 hp loss
+    int successful_blocks;      // block completely absorbs attack (blocked == attack_total)
+    int successful_dodges;      // defender successfully evades attack
+} PlayerMatchStats;
+
+
 // Piles store card IDs (see CardId in cardDatabase.h), not whole cards.
 typedef struct {
     char       name[PLAYER_NAME_LEN];
     uint8_t    style;             // FightingStyle
     StyleStats stats;
+    PlayerMatchStats match_stats;
 
     int16_t hp, max_hp, stagger, energy, defense, speed;
     uint8_t has_initiative, stunned;
