@@ -116,6 +116,13 @@ void send_player_hand(int client_sock, Player *player) {
     send_message(client_sock, "END OF HAND\n");
 }
 
+// Update a player's highest raw dice roll.
+void record_highest_roll(Player *player, int raw_roll) {
+    if (raw_roll > player->match_stats.highest_roll) {
+        player->match_stats.highest_roll = raw_roll;
+    }
+}
+
 // Execute one selected action.
 void execute_action(
     Player *attacker,
@@ -158,6 +165,9 @@ void execute_action(
         );
 
         if (card->type == CARD_BLOCK) {
+
+            record_highest_roll(attacker, defense_roll);
+
             snprintf(message, sizeof(message),
                 "Block: %d(%d) = %d\n",
                 card->defense_value,
@@ -181,6 +191,37 @@ void execute_action(
         int attack_roll = player_roll_card(attacker, card);
 
         HitResult result = player_receive_attack(defender, card, attack_roll);
+
+        // Record the attacker's raw dice roll.
+        record_highest_roll(attacker, attack_roll);
+
+        // Track the attacker's highest calculated damage.
+        if (result.attack_total > attacker->match_stats.highest_damage) {
+            attacker->match_stats.highest_damage = result.attack_total;
+        }
+
+        // Count attacks that actually reduce the opponent's HP.
+        if (result.hp_lost > 0) {
+            attacker->match_stats.successful_attacks++;
+        }
+
+        // Record the defender's evade roll, if an Evade check occurred.
+        if (result.evade_checked) {
+            record_highest_roll(defender, result.evade_roll);
+        }
+
+        // Count successful dodges.
+        if (result.evaded) {
+            defender->match_stats.successful_dodges++;
+        }
+
+        // Count blocks that completely absorb an attack.
+        if (!result.evaded &&
+            result.attack_total > 0 &&
+            result.blocked == result.attack_total) {
+
+            defender->match_stats.successful_blocks++;
+        }
 
         if (result.evade_checked) {
             snprintf(message, sizeof(message),
@@ -488,9 +529,21 @@ void resolve_combat(
             int p1_roll;
             int p2_roll;
 
+            int p1_raw_roll;
+            int p2_raw_roll;
+
             do {
-                p1_roll = player_roll_initiative(player1);
-                p2_roll = player_roll_initiative(player2);
+                // Roll the raw d20 results.
+                p1_raw_roll = roll(20);
+                p2_raw_roll = roll(20);
+
+                // Record each player's highest raw roll.
+                record_highest_roll(player1, p1_raw_roll);
+                record_highest_roll(player2, p2_raw_roll);
+
+                // Add speed bonuses to determine initiative.
+                p1_roll = p1_raw_roll + player1->speed;
+                p2_roll = p2_raw_roll + player2->speed;
 
                 char message[256];
 
@@ -499,8 +552,7 @@ void resolve_combat(
                     player1->name, p1_roll,
                     player2->name, p2_roll);
 
-                broadcast_message(client_sock1, client_sock2,
-                    message);
+                broadcast_message(client_sock1, client_sock2, message);
 
                 if (p1_roll == p2_roll) {
                     broadcast_message(client_sock1, client_sock2,
@@ -1029,6 +1081,55 @@ int main(int argc, char *argv[]) {
                     "PLAYER 1 WINS!\n"
                     "====================================\n");
             }
+
+            char stats_message[1200];
+
+            snprintf(stats_message, sizeof(stats_message),
+                "\n====================================\n"
+                "          MATCH STATISTICS\n"
+                "====================================\n"
+                "Rounds played: %d\n\n"
+
+                "%s:\n"
+                "  Remaining HP: %d\n"
+                "  Highest damage: %d\n"
+                "  Highest raw roll: %d\n"
+                "  Successful attacks: %d\n"
+                "  Successful blocks: %d\n"
+                "  Successful dodges: %d\n\n"
+
+                "%s:\n"
+                "  Remaining HP: %d\n"
+                "  Highest damage: %d\n"
+                "  Highest raw roll: %d\n"
+                "  Successful attacks: %d\n"
+                "  Successful blocks: %d\n"
+                "  Successful dodges: %d\n"
+                "====================================\n",
+
+                round_number,
+
+                player1.name,
+                player1.hp > 0 ? player1.hp : 0,
+                player1.match_stats.highest_damage,
+                player1.match_stats.highest_roll,
+                player1.match_stats.successful_attacks,
+                player1.match_stats.successful_blocks,
+                player1.match_stats.successful_dodges,
+
+                player2.name,
+                player2.hp > 0 ? player2.hp : 0,
+                player2.match_stats.highest_damage,
+                player2.match_stats.highest_roll,
+                player2.match_stats.successful_attacks,
+                player2.match_stats.successful_blocks,
+                player2.match_stats.successful_dodges
+            );
+
+            broadcast_message(client_sock1, client_sock2, stats_message);
+
+            send_message(client_sock1, "MATCH_OVER\n");
+            send_message(client_sock2, "MATCH_OVER\n");
 
             break;
         }
