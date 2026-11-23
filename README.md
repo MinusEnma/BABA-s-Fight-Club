@@ -1,50 +1,121 @@
-# BABA-s-Fight-Club
-Terminal Based Game
-### card
-### dice
-### fightingStyle
-### player
-### server
+# BABA's Fight Club
 
-## card
--card.h
--cardDatabase.c
--cardDatabase.h
+**A Terminal-Based Multiplayer Fighting Game in C**
 
-## dice
--dice.h
--dice.c
+BABA's Fight Club is a terminal-based multiplayer fighting game written in C. Players choose their fighting styles, select cards to build combos, and battle against each other using dice rolls and combat mechanics.
 
-## fightingStyle
--fightingStyle.h
--fightingStyle.c
+## Features
 
-## player
--player.h
--player.c
+- **Fighting Styles** – Choose a fighting style that influences your combat abilities.
+- **Card-Based Combat** – Select and queue cards to create attack combinations.
+- **Dice System** – Use dice rolls to determine combat outcomes.
+- **Player System** – Manage player stats, health, energy, and other combat attributes.
+- **Stagger System** – Build up stagger damage to affect your opponent during combat.
+- **Multiplayer Support** – Connect two players through a client-server system.
+- **Round-Based Combat** – Battle through multiple rounds until a player is defeated.
 
-## server
--server.h
--server.c
+## Project Structure
 
-BABA-s-Fight-Club/  
-├── card/  
-│   ├── card.h\
-│   ├── cardDatabase.c\
-│   └── cardDatabase.h\
-├── dice/\
-│   ├── dice.c\
-│   └── dice.h\
-├── fightingStyle/\
-│   ├── dice.c\
-│   └── dice.h\
-├── player/\
-│   ├── player.c\
-│   └── player.h\
-├── .gitignore\
-├── compiler.sh\
-├── main.c\
+```text
+BABA-s-Fight-Club/
+│
+├── card/
+│   ├── card.h
+│   ├── cardDatabase.c
+│   └── cardDatabase.h
+│
+├── dice/
+│   ├── dice.c
+│   └── dice.h
+│
+├── fightingStyle/
+│   ├── fightingStyle.c
+│   └── fightingStyle.h
+│
+├── player/
+│   ├── player.c
+│   └── player.h
+│
+├── server/
+│   ├── client.c
+│   ├── server.c
+│   └── server.h
+│
+├── .gitignore
+├── compiler.sh
 └── README.md
+```
 
-## How to compile
-run compiler.sh
+## Directory Overview
+
+| Directory / File | Description |
+|---|---|
+| `card/` | Contains card structures, definitions, and the card database. |
+| `dice/` | Handles dice mechanics and rolls. |
+| `fightingStyle/` | Defines the available fighting styles and their attributes. |
+| `player/` | Handles player data, stats, and combat-related mechanics. |
+| `server/` | Contains the server and client programs for multiplayer communication. |
+| `compiler.sh` | Shell script used to compile the server and client executables. |
+
+## Requirements
+
+- GCC compiler
+- Bash shell
+- Linux environment
+- POSIX socket support
+
+## How to Compile
+
+1. Open a terminal in the project directory.
+2. Give the compiler script permission to execute:
+
+   ```bash
+   chmod +x compiler.sh
+   ```
+
+3. Run the compiler script:
+
+   ```bash
+   ./compiler.sh
+   ```
+
+After successful compilation, two executables will be generated inside the `build/` directory:
+
+```text
+build/
+├── server
+└── client
+```
+
+## How to Run
+
+The game uses a client-server architecture.
+
+1. Start the server:
+
+   ```bash
+   ./build/server
+   ```
+
+2. Open two separate terminals and start one client in each:
+
+   ```bash
+   ./build/client
+   ```
+
+3. Both players connect to the server and participate in the match.
+
+## Technologies Used
+
+- C
+- GCC
+- Bash
+- POSIX Sockets
+- Git and GitHub
+
+## Developers
+
+Abiog, Theo Angelo A.
+Agsao, Christian Josef A.
+Bañas, Karl Matthew S.
+Breboneria, Mark Jerome M.
