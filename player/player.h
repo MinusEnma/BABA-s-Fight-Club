@@ -13,7 +13,7 @@
 #define HAND_SIZE  6       // cards drawn per round
  
 #define START_HP       250
-#define START_STAGGER  125
+#define START_STAGGER  150
 #define ROUND_ENERGY   5   // placeholder: energy per round
  
 // Evade tuning (placeholders)
@@ -81,6 +81,7 @@ void player_shuffle_deck(Player *p);
 bool player_draw_card(Player *p);       // draws 1 (reshuffles discard if deck is empty)
 void player_draw_hand(Player *p);       // draws until the hand has HAND_SIZE cards
 void player_discard_hand(Player *p);
+bool player_add_drafted_card(Player *p, uint8_t card_id);
 
 // Turn / combo
 int  player_roll_initiative(const Player *p);   // d20 + speed

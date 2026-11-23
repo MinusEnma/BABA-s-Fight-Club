@@ -351,7 +351,122 @@ int main(int argc, char *argv[]) {
                 printf("%s\n", buffer);
             }
 
-            // Wait for the next round or match result.
+            // Wait for the draft phase or match result.
+            int draft_skipped = 0;
+
+            while (1) {
+                memset(buffer, 0, sizeof(buffer));
+
+                n = receive_line(client_sock, buffer, sizeof(buffer));
+
+                if (n < 0) {
+                    printf("Server disconnected.\n");
+                    goto cleanup;
+                }
+
+                if (strcmp(buffer, "MATCH_OVER") == 0) {
+                    match_over = 1;
+                    break;
+                }
+
+                if (strcmp(buffer, "DRAFT_START") == 0) {
+                    break;
+                }
+
+                printf("%s\n", buffer);
+            }
+
+            // Exit if the match has ended.
+            if (match_over) {
+                break;
+            }
+
+            // Receive and display the available draft cards.
+            printf("\n===== CARD DRAFT =====\n");
+
+            while (1) {
+                memset(buffer, 0, sizeof(buffer));
+
+                n = receive_line(client_sock, buffer, sizeof(buffer));
+
+                if (n < 0) {
+                    printf("Server disconnected.\n");
+                    goto cleanup;
+                }
+
+                if (strcmp(buffer, "END OF DRAFT OPTIONS") == 0) {
+                    break;
+                }
+
+                if (strncmp(buffer, "DRAFT_SKIPPED:", 14) == 0) {
+                    draft_skipped = 1;
+                }
+
+                printf("%s\n", buffer);
+            }
+
+            // Ask the player to select two cards.
+            if (!draft_skipped) {
+                int drafted = 0;
+
+                while (drafted < 2) {
+                    printf("\nSelect a card to draft (%d/2).\n", drafted + 1);
+                    printf("[you] > ");
+
+                    if (fgets(choice, sizeof(choice), stdin) == NULL) {
+                        goto cleanup;
+                    }
+
+                    choice[strcspn(choice, "\n")] = '\0';
+
+                    snprintf(request, sizeof(request),
+                             "DRAFT %s\n", choice);
+
+                    n = send(client_sock, request, strlen(request), 0);
+
+                    if (n < 0) {
+                        printf("Error sending draft selection.\n");
+                        goto cleanup;
+                    }
+
+                    // Receive the server's response.
+                    memset(buffer, 0, sizeof(buffer));
+
+                    n = receive_line(client_sock, buffer, sizeof(buffer));
+
+                    if (n < 0) {
+                        printf("Server disconnected.\n");
+                        goto cleanup;
+                    }
+
+                    printf("[server] > %s\n", buffer);
+
+                    if (strncmp(buffer, "DRAFT_SELECTED:", 15) == 0) {
+                        drafted++;
+                    }
+                }
+            }
+
+            // Wait until both players have finished drafting.
+            while (1) {
+                memset(buffer, 0, sizeof(buffer));
+
+                n = receive_line(client_sock, buffer, sizeof(buffer));
+
+                if (n < 0) {
+                    printf("Server disconnected.\n");
+                    goto cleanup;
+                }
+
+                if (strcmp(buffer, "DRAFT_COMPLETE") == 0) {
+                    printf("\nBoth players completed drafting!\n");
+                    break;
+                }
+
+                printf("[server] > %s\n", buffer);
+            }
+
+            // Wait for the next round.
             while (1) {
                 memset(buffer, 0, sizeof(buffer));
 
@@ -363,11 +478,6 @@ int main(int argc, char *argv[]) {
                 }
 
                 if (strcmp(buffer, "NEXT_ROUND") == 0) {
-                    break;
-                }
-
-                if (strcmp(buffer, "MATCH_OVER") == 0) {
-                    match_over = 1;
                     break;
                 }
 

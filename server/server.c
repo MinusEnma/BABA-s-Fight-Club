@@ -116,6 +116,170 @@ void send_player_hand(int client_sock, Player *player) {
     send_message(client_sock, "END OF HAND\n");
 }
 
+
+// Send the available draft cards to one player.
+void send_draft_options(int client_sock, Player *player,
+                        uint8_t *pool, int *pool_count) {
+    char message[256];
+
+    *pool_count = card_pool_for_style(
+        (FightingStyle)player->style,
+        pool,
+        CARD_COUNT
+    );
+
+    send_message(client_sock, "DRAFT_START\n");
+
+    if (*pool_count <= 0) {
+        send_message(client_sock,
+            "DRAFT_SKIPPED: No cards available for this fighting style.\n");
+        send_message(client_sock, "END OF DRAFT OPTIONS\n");
+        return;
+    }
+
+    send_message(client_sock, "\n===== CARD DRAFT =====\n");
+
+    for (int i = 0; i < *pool_count; i++) {
+        const Card *card = card_get(pool[i]);
+
+        if (card == NULL) {
+            continue;
+        }
+
+        snprintf(message, sizeof(message),
+                 "%d. %-25s | %-67s | Energy: %d\n",
+                 i + 1,
+                 card->name,
+                 card->description,
+                 card->energy_cost);
+
+        send_message(client_sock, message);
+    }
+
+    send_message(client_sock, "END OF DRAFT OPTIONS\n");
+}
+
+// Handle one player's two draft selections.
+int draft_player(int client_sock, Player *player,
+                 uint8_t *pool, int pool_count) {
+    char command[256];
+    char message[128];
+    uint8_t selected[2];
+    int selected_count = 0;
+
+    while (selected_count < 2) {
+        int n = receive_line(client_sock, command, sizeof(command));
+
+        if (n <= 0) {
+            return 0;
+        }
+
+        int choice;
+        char extra;
+
+        // Only accept commands in the format: DRAFT <number>
+        if (sscanf(command, "DRAFT %d %c", &choice, &extra) != 1) {
+            send_message(client_sock,
+                "DRAFT_INVALID: Use DRAFT followed by a card number.\n");
+            continue;
+        }
+
+        if (choice < 1 || choice > pool_count) {
+            send_message(client_sock,
+                "DRAFT_INVALID: Invalid card number.\n");
+            continue;
+        }
+
+        uint8_t card_id = pool[choice - 1];
+
+        // Prevent selecting the same card twice in one draft.
+        if (selected_count > 0 && card_id == selected[0]) {
+            send_message(client_sock,
+                "DRAFT_INVALID: You already selected that card.\n");
+            continue;
+        }
+
+        if (!player_add_drafted_card(player, card_id)) {
+            send_message(client_sock,
+                "DRAFT_INVALID: Unable to add that card.\n");
+            continue;
+        }
+
+        selected[selected_count++] = card_id;
+
+        const Card *card = card_get(card_id);
+
+        snprintf(message, sizeof(message),
+                 "DRAFT_SELECTED: %s (%d/2)\n",
+                 card->name,
+                 selected_count);
+
+        send_message(client_sock, message);
+    }
+
+    return 1;
+}
+
+// Coordinate the draft phase for both players.
+int draft_phase(int client_sock1, int client_sock2,
+                Player *player1, Player *player2) {
+    uint8_t pool1[CARD_COUNT];
+    uint8_t pool2[CARD_COUNT];
+    int pool_count1 = 0;
+    int pool_count2 = 0;
+
+    int total1 = player1->deck_count + player1->discard_count
+               + player1->hand_count + player1->combo_count;
+
+    int total2 = player2->deck_count + player2->discard_count
+               + player2->hand_count + player2->combo_count;
+
+    // Each player needs room for exactly two new cards.
+    if (MAX_DECK - total1 < 2) {
+        send_message(client_sock1,
+            "DRAFT_START\n"
+            "DRAFT_SKIPPED: Not enough deck space for two cards.\n"
+            "END OF DRAFT OPTIONS\n");
+    } else {
+        send_draft_options(client_sock1, player1, pool1, &pool_count1);
+    }
+
+    if (MAX_DECK - total2 < 2) {
+        send_message(client_sock2,
+            "DRAFT_START\n"
+            "DRAFT_SKIPPED: Not enough deck space for two cards.\n"
+            "END OF DRAFT OPTIONS\n");
+    } else {
+        send_draft_options(client_sock2, player2, pool2, &pool_count2);
+    }
+
+    printf("\n===== CARD DRAFT PHASE =====\n");
+
+    // Player 1 makes their selections.
+    if (pool_count1 > 0) {
+        if (!draft_player(client_sock1, player1, pool1, pool_count1)) {
+            printf("Player 1 disconnected during drafting.\n");
+            return 0;
+        }
+    }
+
+    // Player 2 makes their selections.
+    if (pool_count2 > 0) {
+        if (!draft_player(client_sock2, player2, pool2, pool_count2)) {
+            printf("Player 2 disconnected during drafting.\n");
+            return 0;
+        }
+    }
+
+    send_message(client_sock1, "DRAFT_COMPLETE\n");
+    send_message(client_sock2, "DRAFT_COMPLETE\n");
+
+    printf("Both players completed the draft.\n");
+
+    return 1;
+}
+
+
 // Update a player's highest raw dice roll.
 void record_highest_roll(Player *player, int raw_roll) {
     if (raw_roll > player->match_stats.highest_roll) {
@@ -1132,6 +1296,11 @@ int main(int argc, char *argv[]) {
             send_message(client_sock2, "MATCH_OVER\n");
 
             break;
+        }
+
+        // Let both players draft two new cards.
+        if (!draft_phase(client_sock1, client_sock2, &player1, &player2)) {
+            goto cleanup;
         }
 
         // Prepare both players for the next round.

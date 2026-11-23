@@ -84,6 +84,34 @@ void player_discard_hand(Player *p) {
     p->hand_count = 0;
 }
 
+// Add a drafted card permanently to the player's deck.
+bool player_add_drafted_card(Player *p, uint8_t card_id) {
+    if (p == NULL) return false;
+
+    const Card *card = card_get(card_id);
+
+    // Make sure the card exists and belongs to the player's style.
+    if (card == NULL || card->style != p->style) {
+        return false;
+    }
+
+    // Count cards across all piles before adding another card.
+    int total_cards =
+        p->deck_count +
+        p->discard_count +
+        p->hand_count +
+        p->combo_count;
+
+    if (total_cards >= MAX_DECK) {
+        return false;
+    }
+
+    // Add the drafted card to the discard pile.
+    p->discard[p->discard_count++] = card_id;
+
+    return true;
+}
+
 // Turn / combos
 
 int player_roll_initiative(const Player *p) {
