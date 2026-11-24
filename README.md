@@ -115,7 +115,7 @@ The game uses a client-server architecture.
 
 ## Developers
 
-- **Breboneria, Mark Jerome M.**
-- **Agsao, Christian Josef A.**
-- **Bañas, Karl Matthew S.**
-- **Abiog, Theo Angelo A.**
+- **B**reboneria, Mark Jerome M.
+- **A**gsao, Christian Josef A.
+- **B**añas, Karl Matthew S.
+- **A**biog, Theo Angelo A.
