@@ -94,13 +94,13 @@ The game uses a client-server architecture.
 1. Start the server:
 
    ```bash
-   ./build/server <port number>
+   ./build/server <PORT_NUMBBER>
    ```
 
 2. Open two separate terminals and start one client in each:
 
    ```bash
-   ./build/client <ip address> <port number>
+   ./build/client <IP_ADDRESS> <PORT_NUMBER>
    ```
 
 3. Both players connect to the server and participate in the match.
