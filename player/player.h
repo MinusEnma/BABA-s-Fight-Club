@@ -12,8 +12,8 @@
 #define MAX_COMBO  10
 #define HAND_SIZE  6       // cards drawn per round
  
-#define START_HP       250
-#define START_STAGGER  150
+#define START_HP       125
+#define START_STAGGER  50
 #define ROUND_ENERGY   5   // placeholder: energy per round
  
 // Evade tuning (placeholders)

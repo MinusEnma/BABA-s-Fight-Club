@@ -1091,6 +1091,13 @@ int main(int argc, char *argv[]) {
 
     printf("\nBoth players are connected!\n");
 
+    broadcast_message(client_sock1, client_sock2, 
+        "\nWelcome to BABA's Fight Club!\n"
+        "The rules are simple: Knockout your opponent in 7 rounds or less.\n"
+        "If you are unable to KO your opponent within 7 rounds, the fighter with the most remaining health wins!\n"
+        "To register, what is your fighting style?\n\n"
+    );
+
     // Send fighting style menu to both players.
     const char *style_menu =
         "===== SELECT YOUR FIGHTING STYLE =====\n"
@@ -1242,7 +1249,7 @@ int main(int argc, char *argv[]) {
         );
 
         // Check whether the encounter has ended.
-        if (player1.hp <= 0 || player2.hp <= 0) {
+        if (player1.hp <= 0 || player2.hp <= 0 || round_number >= 7) {
 
             encounter_finished = 1;
 
@@ -1253,15 +1260,22 @@ int main(int argc, char *argv[]) {
                     "              DRAW!\n"
                     "====================================\n"
                     "Both players have been defeated!\n"
-                    "The encounter ends in a draw.\n"
+                    "The match ends in a draw!\n"
                     "====================================\n");
             }
 
             // Player 2 wins.
             else if (player1.hp <= 0) {
-                broadcast_message(client_sock1, client_sock2,
+
+                send_message(client_sock1, 
                     "\n====================================\n"
-                    "             DEFEAT!\n"
+                    "             DEFEAT!\n");
+
+                send_message(client_sock2, 
+                    "\n====================================\n"
+                    "             VICTORY!\n");
+
+                broadcast_message(client_sock1, client_sock2,
                     "====================================\n"
                     "Player 1 has been defeated!\n"
                     "PLAYER 2 WINS!\n"
@@ -1269,13 +1283,67 @@ int main(int argc, char *argv[]) {
             }
 
             // Player 1 wins.
-            else {
-                broadcast_message(client_sock1, client_sock2,
+            else if (player2.hp <= 0) {
+
+                send_message(client_sock2, 
                     "\n====================================\n"
-                    "             VICTORY!\n"
+                    "             DEFEAT!\n");
+
+                send_message(client_sock1, 
+                    "\n====================================\n"
+                    "             VICTORY!\n");
+
+                broadcast_message(client_sock1, client_sock2,
                     "====================================\n"
                     "Player 2 has been defeated!\n"
                     "PLAYER 1 WINS!\n"
+                    "====================================\n");
+            }
+
+            // Player 1 has more HP after 7 rounds.
+            else if (player1.hp > player2.hp) {
+
+                send_message(client_sock2, 
+                    "\n====================================\n"
+                    "             DEFEAT!\n");
+
+                send_message(client_sock1, 
+                    "\n====================================\n"
+                    "             VICTORY!\n");
+
+                broadcast_message(client_sock1, client_sock2,
+                    "====================================\n"
+                    "Player 1 has more remaining health after 7 rounds!\n"
+                    "Player 1 WINS!\n"
+                    "====================================\n");
+            }
+
+            // Player 2 has more HP after 7 rounds.
+            else if (player2.hp > player1.hp) {
+
+                send_message(client_sock1, 
+                    "\n====================================\n"
+                    "             DEFEAT!\n");
+
+                send_message(client_sock2, 
+                    "\n====================================\n"
+                    "             VICTORY!\n");
+
+                broadcast_message(client_sock1, client_sock2,
+                    "====================================\n"
+                    "Player 2 has more remaining health after 7 rounds!\n"
+                    "Player 2 WINS!\n"
+                    "====================================\n");
+            }
+
+            // Both players have equal HP after 7 rounds.
+            else {
+                broadcast_message(client_sock1, client_sock2,
+                    "\n====================================\n"
+                    "             DRAW!\n"
+                    "====================================\n"
+                    "After 7 rounds, both players have equal health!"
+                    "The match ends in a draw!\n"
                     "====================================\n");
             }
 
