@@ -1364,12 +1364,12 @@ int main(int argc, char *argv[]) {
                 "      Successful dodges: %d\n\n"
 
                 "%s:\n"
-                "  Remaining HP: %d\n"
-                "  Highest damage: %d\n"
-                "  Highest raw roll: %d\n"
-                "  Successful attacks: %d\n"
-                "  Successful blocks: %d\n"
-                "  Successful dodges: %d\n"
+                "         Remaining HP: %d\n"
+                "        Highest damage: %d\n"
+                "      Highest raw roll: %d\n"
+                "     Successful attacks: %d\n"
+                "      Successful blocks: %d\n"
+                "      Successful dodges: %d\n"
                 "====================================\n",
 
                 round_number,
