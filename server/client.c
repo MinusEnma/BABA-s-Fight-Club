@@ -351,7 +351,7 @@ int main(int argc, char *argv[]) {
             clear_screen();
 
             printf("====================================\n");
-            printf("             COMBAT\n");
+            printf("              COMBAT\n");
             printf("====================================\n");
 
             while (1) {
