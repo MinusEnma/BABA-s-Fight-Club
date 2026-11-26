@@ -855,7 +855,7 @@ void resolve_combat(
 
     snprintf(round_message, sizeof(round_message),
         "\n====================================\n"
-        "             ROUND COMPLETE\n"
+        "           ROUND COMPLETE\n"
         "====================================\n"
         "           PLAYER 1 HP: %d\n"
         "           PLAYER 2 HP: %d\n"
